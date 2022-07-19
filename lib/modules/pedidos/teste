@@ -1,0 +1,315 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:smartvendas/app_routes.dart';
+import 'package:smartvendas/app_store.dart';
+import 'package:smartvendas/modules/datamodule/connection/dm.dart';
+import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/pedidos_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
+import 'package:smartvendas/shared/funcoes.dart';
+import 'package:smartvendas/shared/header_main.dart';
+import 'package:smartvendas/shared/variaveis.dart';
+import 'package:expansion_tile_card/expansion_tile_card.dart';
+import 'package:jiffy/jiffy.dart';
+
+class PedidoConta extends StatefulWidget {
+  const PedidoConta({Key? key}) : super(key: key);
+
+  @override
+  State<PedidoConta> createState() => _PedidoContaState();
+}
+
+class _PedidoContaState extends State<PedidoConta> {
+  int _n = 0;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  // double getTotalListProduto(List<Produto> produtos, index, nqte) {
+  //   double val = 0;
+  //   for (Produto element in produtos) {
+  //     if (element.qte > 0) || {
+  //       val = val + (Funcoes.getValorProduto(element) * nqte);
+  //     }
+  //   }
+
+  //   return val;
+  // }
+
+  void doUpdateProduto(List<Produto> produto, int index) async {
+    await DmModule.updTable('update produtos set qte=' +
+        _n.toString() +
+        ' where id="' +
+        produto[index].id +
+        '"');
+String _str ='preco';
+if (_n>=produto[index].qteminatacado){
+_str='atacado';}
+
+    ctrlApp.totalGeralProdutos.value =  await DmModule.getTotal('produtos', 'qte*$_str');
+
+    ctrlApp.totalGeralProdutosFmt.value =
+        formatter.format(ctrlApp.totalGeralProdutos.value);
+  }
+
+  void minus(List<Produto> produto, int index) {
+    setState(() {
+      if (_n != 0) {
+        _n = produto[index].qte - 1;
+        doUpdateProduto(produto, index);
+      }
+    });
+  }
+
+  void add(List<Produto> produto, int index) {
+    setState(() {
+      _n = produto[index].qte + 1;
+      doUpdateProduto(produto, index);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Cliente lstCliente =
+        ModalRoute.of(context)!.settings.arguments as Cliente;
+
+    AppStore ctrlApp = Get.find<AppStore>();
+    return SafeArea(
+      child: Scaffold(
+        bottomNavigationBar: BottomAppBar(
+          color: corRodape,
+          child: Row(
+            children: [
+              const SizedBox(
+                height: 40,
+                width: 10,
+              ),
+              OutlinedButton.icon(
+                label: const Text(
+                  'Voltar',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontFamily: "RobotoCondensed",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: const BorderSide(width: 1, color: Colors.black87),
+                ),
+                icon: const Icon(Icons.arrow_back_ios_outlined,
+                    color: Colors.black54),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                },
+              ),
+              const Spacer(),
+              Obx(() => Text(
+                    'Total:' + ctrlApp.totalGeralProdutosFmt.value,
+                    style: const TextStyle(color: Colors.white),
+                  )),
+              const Spacer(),
+              OutlinedButton.icon(
+                label: const Text(
+                  'Salvar',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontFamily: "RobotoCondensed",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: const BorderSide(width: 1, color: Colors.black87),
+                ),
+                icon: const Icon(Icons.save, color: Colors.black54),
+                onPressed: () async {
+                  if (ctrlApp.totalGeralProdutos.value > 0) {
+                    PedidosProvider.addUpdatePedido(Pedido(
+                      ctrlApp.getPedidoId(),
+                      ctrlApp.usuarioId.value.toString(),
+                      lstCliente.id.toString(),
+                      lstCliente.nome,
+                      Jiffy().format('dd[/]MM[/]yyyy'),
+                      ctrlApp.totalGeralProdutos.value,
+                      ctrlApp.totalGeralProdutosFmt.value,
+                      0,
+                    ));
+                    await PedidosProvider.gravaItens(ctrlApp.pedidoId.value);
+                    await PedidosProvider.resetProdutos();
+                    ctrlApp.totalPedidos.value =
+                        await DmModule.getCount('pedidos');
+                    Navigator.of(context)
+                        .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                  }
+                },
+              ),
+              const SizedBox(
+                width: 10,
+              ),
+            ],
+          ),
+        ),
+        body: Column(children: [
+          Stack(
+            children: [
+              const HeaderInput(
+                iconeMain: Icons.local_shipping,
+                titulo: 'Fechamento',
+                altura: 70,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Text(
+                      lstCliente.nome,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text('Data do Pedido: ' +
+                        Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: FutureBuilder<List<Produto>>(
+                future: ProdutosProvider.loadProdutosConta(),
+                initialData: const [],
+                builder: (BuildContext context, AsyncSnapshot snapshot) {
+                  List<Produto> lstProduto = snapshot.data;
+                  if (!snapshot.hasData) {
+                    // || snapshot.data.lenght == 0
+                    return const Center(
+                      child: Text('Nenhum registro encontrado!'),
+                    );
+                  } else {
+                    return ListView.builder(
+                      itemCount: lstProduto.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                          child: ExpansionTileCard(
+                            title: Text(
+                              lstProduto[index].descricao,
+                              style:
+                                  const TextStyle(color: corText, fontSize: 16),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            subtitle: Row(
+                              children: [
+                                Text(
+                                    lstProduto[index].valorfmt +
+                                        '   ' +
+                                        lstProduto[index].unidade,
+                                    style: const TextStyle(
+                                        fontSize: 14,
+                                        color: corText,
+                                        fontWeight: FontWeight.bold)),
+                                const Spacer(),
+                                (lstProduto[index].qte) > 0
+                                    ? Text(
+                                        lstProduto[index].qte.toString() +
+                                            lstProduto[index].unidade +
+                                            ' X ' +
+                                            formatter.format(
+                                                Funcoes.getValorProduto(
+                                                    lstProduto[index])) +
+                                            ' = ' +
+                                            formatter.format(
+                                                lstProduto[index].qte *
+                                                    Funcoes.getValorProduto(
+                                                        lstProduto[index])),
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            color: corText,
+                                            fontWeight: FontWeight.bold))
+                                    : const Text(''),
+                              ],
+                            ),
+                            children: [
+                              const Divider(
+                                thickness: 1,
+                                height: 1,
+                              ),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(
+                                        width: 20,
+                                      ),
+                                      FloatingActionButton(
+                                        heroTag:
+                                            "minusconta" + index.toString(),
+                                        onPressed: () {
+                                          minus(lstProduto, index);
+                                        },
+                                        child: const Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 36,
+                                        ),
+                                        backgroundColor: Colors.blueGrey,
+                                      ),
+                                      const Spacer(),
+                                      Text(lstProduto[index].qte.toString(),
+                                          style:
+                                              const TextStyle(fontSize: 60.0)),
+                                      const Spacer(),
+                                      FloatingActionButton(
+                                        heroTag: "addconta" + index.toString(),
+                                        onPressed: () {
+                                          add(lstProduto, index);
+                                        },
+                                        child: const Icon(
+                                          Icons.add_circle_outline,
+                                          size: 36,
+                                        ),
+                                        backgroundColor: Colors.blueGrey,
+                                      ),
+                                      const SizedBox(
+                                        width: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  // return const Center(child: CircularProgressIndicator());
+                }),
+          ),
+        ]),
+      ),
+    );
+  }
+}

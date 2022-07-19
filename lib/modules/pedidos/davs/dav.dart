@@ -1,0 +1,587 @@
+import 'package:expansion_tile_card/expansion_tile_card.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
+import 'package:jiffy/jiffy.dart';
+import 'package:smartvendas/app_routes.dart';
+import 'package:smartvendas/app_store.dart';
+import 'package:smartvendas/modules/datamodule/connection/dm.dart';
+import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
+import 'package:smartvendas/shared/funcoes.dart';
+import 'package:smartvendas/shared/header_main.dart';
+import 'package:smartvendas/shared/number_editcustom.dart';
+import 'package:smartvendas/shared/show_message.dart';
+import 'package:smartvendas/shared/variaveis.dart';
+
+class FuncoesTela {
+  static int _n = 0;
+
+  static void doUpdateProduto(
+    List<Produto> produto,
+    int index,
+  ) async {
+    await DmModule.updTable('update produtos set qte=' +
+        FuncoesTela._n.toString() +
+        ' where id="' +
+        produto[index].id +
+        '"');
+  }
+
+  static void doUpdateProdutoEdit(Produto produto) async {
+    String _str = 'preco';
+    if (produto.qteminatacado > 0) {
+      if (produto.qte >= produto.qteminatacado) {
+        _str = 'atacado';
+      }
+    }
+
+    ctrlApp.totalGeralProdutos.value =
+        await DmModule.getTotal('produtos', 'qte*$_str');
+
+    ctrlApp.totalGeralProdutosFmt.value =
+        formatter.format(ctrlApp.totalGeralProdutos.value);
+    // produto.qte = _n;
+  }
+
+  static void minus(List<Produto> produto, int index) {
+    if (FuncoesTela._n > 0) {
+      FuncoesTela._n = produto[index].qte - 1;
+      doUpdateProduto(produto, index);
+    }
+  }
+
+  static void minusEdit(Produto produto) {
+    if (produto.id.isNotEmpty) {
+      if (produto.qte > 0) {
+        produto.qte = produto.qte - 1;
+        doUpdateProdutoEdit(produto);
+      }
+    }
+  }
+
+  static void add(List<Produto> produto, int index) {
+    FuncoesTela._n = produto[index].qte + 1;
+    doUpdateProduto(produto, index);
+  }
+
+  static void addEdit(Produto produto) {
+    if (produto.id.isNotEmpty) {
+      produto.qte = produto.qte + 1;
+      doUpdateProdutoEdit(produto);
+    }
+  }
+
+  static void updateField(List<Produto> produto, int index, String qte) {
+    FuncoesTela._n = Funcoes.strToInt(qte);
+    doUpdateProduto(produto, index);
+  }
+
+  static void updateFieldEdit(Produto produto, String qte) {
+    FuncoesTela._n = Funcoes.strToInt(qte);
+    doUpdateProdutoEdit(produto);
+  }
+
+  // static Future<List<Produto>> loadBuilder(bool isconta) {
+  //   return isconta
+  //       ? ProdutosProvider.loadProdutosConta()
+  //       : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
+  // }
+  static Future<List<Produto>> loadBuilder(bool isconta) {
+    return isconta
+        ? ProdutosProvider.loadProdutosConta()
+        : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
+  }
+}
+
+class DAV extends StatelessWidget {
+  const DAV({Key? key}) : super(key: key);
+  //  BackButtonInterceptor.add(myInterceptor);
+
+  @override
+  Widget build(BuildContext context) {
+    final Cliente lstCliente =
+        ModalRoute.of(context)!.settings.arguments as Cliente;
+
+    AppStore ctrlApp = Get.find<AppStore>();
+    return WillPopScope(
+      onWillPop: () {
+        return Future.value(false); // if true allow back else block it
+      },
+      child: DAVControl(
+        ctrlApp: ctrlApp,
+        lstCliente: lstCliente,
+      ),
+    );
+  }
+}
+
+class DAVControl extends StatefulWidget {
+  const DAVControl({
+    Key? key,
+    required this.ctrlApp,
+    required this.lstCliente,
+  }) : super(key: key);
+
+  final AppStore ctrlApp;
+  final Cliente lstCliente;
+
+  @override
+  State<DAVControl> createState() => _DAVControlState();
+}
+
+class _DAVControlState extends State<DAVControl> {
+  List<Produto> lstProdutoList = [];
+  Produto lstProduto = Produto.clear();
+  final TextEditingController _edSearchNome = TextEditingController();
+  final TextEditingController _edQte = TextEditingController();
+  final FocusNode _focusProduto = FocusNode();
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Scaffold(
+        bottomNavigationBar: BottomAppBar(
+          color: corRodape,
+          child: Row(
+            children: [
+              const SizedBox(
+                height: 40,
+                width: 10,
+              ),
+              OutlinedButton.icon(
+                label: const Text(
+                  'Cancelar',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontFamily: "RobotoCondensed",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: const BorderSide(width: 1, color: Colors.black87),
+                ),
+                icon: const Icon(Icons.cancel, color: Colors.black54),
+                onPressed: () {
+                  if (widget.ctrlApp.totalGeralProdutos.value > 0) {
+                    ProdutosProvider.resetProdutos;
+                    widget.ctrlApp.totalGeralProdutos.value = 0;
+                    widget.ctrlApp.totalGeralProdutosFmt.value = '';
+                  }
+
+                  // Modular.to.popUntil(ModalRoute.withName(AppRoutes.menu));
+                  Navigator.of(context)
+                      .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                },
+              ),
+              const Spacer(),
+              Obx(() => Text(
+                    'Total:' + widget.ctrlApp.totalGeralProdutosFmt.value,
+                    style: const TextStyle(color: Colors.white),
+                  )),
+              const Spacer(),
+              OutlinedButton.icon(
+                  label: const Text(
+                    'Conta',
+                    style: TextStyle(
+                        color: Colors.white70,
+                        fontFamily: "RobotoCondensed",
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    shape: const StadiumBorder(),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    side: const BorderSide(width: 1, color: Colors.black87),
+                  ),
+                  icon: const Icon(Icons.shopping_cart, color: Colors.black54),
+                  onPressed: () async {
+                    // if (widget.ctrlApp.totalGeralProdutos.value > 0) {
+                    // await Navigator.of(context).pushNamed(AppRoutes.pedidoConta,
+                    // arguments: widget.lstCliente);
+                  }
+                  // setState(() {});
+                  // },
+                  ),
+              const SizedBox(
+                width: 10,
+              ),
+            ],
+          ),
+        ),
+        body: Column(children: [
+          Stack(
+            children: [
+              const HeaderInput(
+                iconeMain: Icons.local_shipping,
+                titulo: 'Pedido',
+                altura: 70,
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 8, right: 40.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.lstCliente.nome,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w900),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      'Usuário: ' + widget.ctrlApp.usuario.value,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    Text('Data do Pedido: ' +
+                        Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          SizedBox(
+            height: 60,
+            child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                child: TextField(
+                  controller: _edSearchNome,
+                  focusNode: _focusProduto,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: corText, fontSize: 18),
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.fromLTRB(3, 0, 10, 0),
+                    border: InputBorder.none,
+                    fillColor: corText.withOpacity(0.2),
+                    filled: true,
+                    // labelText: _edSearchNome.text.isEmpty ? 'Localizar' : '',
+                    // floatingLabelAlignment: FloatingLabelAlignment.start,
+                    prefix: GestureDetector(
+                      onTap: () {
+                        Funcoes.escanearCodigoBarras().then((barras) {
+                          if (barras == '-1') {
+                            _edSearchNome.clear;
+                            showMessage('Leitura cancelada', context);
+                          } else {
+                            _edSearchNome.text = barras;
+                          }
+                        });
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Icon(
+                          FontAwesomeIcons.barcode,
+                          color: corText,
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                    suffixIcon: GestureDetector(
+                      onTap: () {
+                        _edSearchNome.clear();
+                        // FocusScope.of(context).unfocus();
+                      },
+                      child: const Icon(FontAwesomeIcons.eraser,
+                          color: corText, size: 30),
+                    ),
+                  ),
+                  onSubmitted: (value) async {
+                    if (value.length > 7) {
+                      lstProdutoList =
+                          await ProdutosProvider.loadProdutosBarras(value);
+                      lstProduto = Produto.clear();
+                      if (lstProdutoList.isNotEmpty) {
+                        lstProdutoList[0].qte = 1;
+                        lstProduto = lstProdutoList[0];
+                      } else {
+                        showMessage('Registro não encontrado', context);
+                        FocusScope.of(context).requestFocus(_focusProduto);
+                      }
+                      setState(() {});
+                    } else {
+                      FocusScope.of(context).requestFocus(_focusProduto);
+                    }
+                  },
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp("[0-9]")),
+                    UpperCaseTextFormatter(),
+                  ],
+                )),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: lstProduto.id.isEmpty
+                ? const SizedBox(
+                    height: 1,
+                  )
+                : ExpansionTileCard(
+                    baseColor: Colors.white,
+                    expandedColor: Colors.white,
+                    initiallyExpanded: true,
+                    // leading:
+                    title: Text(
+                      'Descr:' + lstProduto.descricao,
+                      style: const TextStyle(color: corText, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              '  Barras: ' + lstProduto.barras,
+                              style: const TextStyle(
+                                  color: corText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11),
+                            ),
+                            const Spacer(),
+                            Text(
+                                lstProduto.qte.toString() +
+                                    ' X R\$' +
+                                    formatter.format(
+                                        Funcoes.getValorProduto(lstProduto)) +
+                                    ' = ' +
+                                    formatter.format(lstProduto.qte *
+                                        Funcoes.getValorProduto(lstProduto)),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: corText,
+                                    fontWeight: FontWeight.bold))
+                          ],
+                        ),
+                      ],
+                    ),
+                    children: [
+                      const Divider(
+                        thickness: 1,
+                        height: 1,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 8),
+                        child: Row(
+                          children: [
+                            FloatingActionButton(
+                              heroTag: "minusconta",
+                              onPressed: () {
+                                FuncoesTela.minusEdit(lstProduto);
+
+                                setState(() {
+                                  _edQte.text = lstProduto.qte.toString();
+                                });
+                              },
+                              child: const Icon(
+                                Icons.remove_circle_outline,
+                                size: 36,
+                              ),
+                              backgroundColor: Colors.blueGrey,
+                            ),
+                            const Spacer(flex: 3),
+                            NumberEditCustom(
+                              edController: _edQte,
+                              fonteSize: 25,
+                              fieldSize: 50,
+                              fieldWidth: 30,
+                              fieldMaxLength: 5,
+                              // edFocusNode: edQte,
+                              textFlex: 30,
+                              caption: lstProduto.qte.toString(),
+                              onComplete: () {
+                                setState(() {
+                                  lstProduto.qte =
+                                      Funcoes.strToInt(_edQte.text);
+                                  FuncoesTela.updateFieldEdit(
+                                      lstProduto, _edQte.text);
+                                  _edQte.text = FuncoesTela._n.toString();
+                                });
+                              },
+                              textInputType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: false),
+                            ),
+                            FloatingActionButton(
+                              heroTag: "addconta",
+                              onPressed: () {
+                                FuncoesTela.addEdit(lstProduto);
+
+                                setState(() {
+                                  _edQte.text = lstProduto.qte.toString();
+                                });
+                              },
+                              child: const Icon(
+                                Icons.add_circle_outline,
+                                size: 36,
+                              ),
+                              backgroundColor: Colors.blueGrey,
+                            ),
+                            const Spacer(
+                              flex: 25,
+                            ),
+                            FloatingActionButton(
+                              heroTag: "Gravar",
+                              onPressed: () {
+                                if (lstProduto.id.isNotEmpty) {
+                                  FuncoesTela._n = lstProduto.qte;
+                                  FuncoesTela.doUpdateProduto(
+                                      lstProdutoList, 0);
+                                  setState(() {
+                                    lstProduto = Produto.clear();
+                                    _edSearchNome.clear();
+                                    FocusScope.of(context)
+                                        .requestFocus(_focusProduto);
+                                  });
+                                }
+                              },
+                              child: const Icon(
+                                Icons.check,
+                                size: 36,
+                              ),
+                              backgroundColor: Colors.green[700],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          Expanded(
+            child: DAVProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: true),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class DAVProdutosBuilder extends StatefulWidget {
+  final bool isConta;
+  final AppStore ctrlApp;
+  const DAVProdutosBuilder(
+      {Key? key, required this.ctrlApp, required this.isConta})
+      : super(key: key);
+
+  @override
+  State<DAVProdutosBuilder> createState() => _ProdutosBuilderState();
+}
+
+class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
+  final List<TextEditingController> _controllers = [];
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Produto>>(
+        future: FuncoesTela.loadBuilder(widget.isConta),
+        initialData: const [],
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          List<Produto> lstProduto = snapshot.data;
+
+          if (!snapshot.hasData) {
+            // || snapshot.data.lenght == 0
+            return const Center(
+              child: Text('Nenhum registro encontrado!'),
+            );
+          } else {
+            return ListView.builder(
+              itemCount: lstProduto.length,
+              itemBuilder: (BuildContext context, int index) {
+                _controllers.add(TextEditingController());
+
+                return customExpationTileCard(lstProduto, index);
+              },
+            );
+          }
+          // return const Center(child: CircularProgressIndicator());
+        });
+  }
+
+  SizedBox customExpationTileCard(List<Produto> lstProduto, int index) {
+    return SizedBox(
+      // leading:
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 3, left: 10, right: 10),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(3),
+              topRight: Radius.circular(3),
+              bottomLeft: Radius.circular(3),
+              bottomRight: Radius.circular(3)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.5),
+              spreadRadius: 5,
+              blurRadius: 7,
+              offset: Offset(0, 3), // changes position of shadow
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                        bottom: 3, left: 8, top: 3, right: 8),
+                    child: Text(
+                      lstProduto[index].descricao,
+                      style: const TextStyle(color: corText, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding:
+                  const EdgeInsets.only(bottom: 3, left: 8, top: 3, right: 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Barras: ' + lstProduto[index].barras,
+                    style: const TextStyle(
+                        color: corText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11),
+                  ),
+                  const SizedBox(
+                    width: 40,
+                  ),
+                  Text(
+                      lstProduto[index].qte.toString() +
+                          lstProduto[index].unidade +
+                          ' X R\$' +
+                          formatter.format(
+                              Funcoes.getValorProduto(lstProduto[index])) +
+                          ' = ' +
+                          formatter.format(lstProduto[index].qte *
+                              Funcoes.getValorProduto(lstProduto[index])),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: corText,
+                          fontWeight: FontWeight.bold))
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

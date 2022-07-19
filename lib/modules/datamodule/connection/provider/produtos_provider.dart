@@ -1,0 +1,155 @@
+import 'package:smartvendas/modules/datamodule/connection/dm.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
+import 'package:smartvendas/shared/funcoes.dart';
+import 'package:sn_progress_dialog/sn_progress_dialog.dart';
+import 'package:sqflite/sqflite.dart' as sql;
+
+class ProdutosProvider {
+  static final List<Produto> _items = [];
+
+  static Future<List<Produto>> loadProdutos(String search) async {
+    _items.clear();
+    List<Map<String, dynamic>> res;
+
+    if (search == '' || search.isEmpty) {
+      res = await DmModule.sqlQuery(
+          'select * from produtos order by descricao limit 100');
+    } else {
+      if (Funcoes.isNumber(search)) {
+        res = await DmModule.getNearestData('produtos', 'barras', search);
+      } else {
+        res = await DmModule.getNearestData('produtos', 'descricao', search);
+      }
+    }
+
+    return setTable(res, false);
+  }
+
+  static Future<List<Produto>> loadCategoria(String search) async {
+    _items.clear();
+    List<Map<String, dynamic>> res;
+
+    if (search == '' || search.isEmpty) {
+      res = await DmModule.sqlQuery('select * from categoria order by codigo ');
+    } else {
+      if (Funcoes.isNumber(search)) {
+        res = await DmModule.getNearestData('produtos', 'barras', search);
+      } else {
+        res = await DmModule.getNearestData('produtos', 'descricao', search);
+      }
+    }
+
+    return setTable(res, false);
+  }
+
+  static Future<List<Produto>> loadProdutosBarras(String search) async {
+    _items.clear();
+    List<Map<String, dynamic>> res;
+
+    if (search == '' || search.isEmpty) {
+      res = await DmModule.sqlQuery(
+          'select * from produtos where 1<>1 order by descricao');
+    } else {
+      res = await DmModule.getData('produtos', 'barras', '=', search);
+    }
+
+    return setTable(res, false);
+  }
+
+  static List<Produto> setTable(Iterable list, bool isSave) {
+    // myDb.delCliente();
+    List<Produto> res;
+    res = list.map((list) => Produto.fromMap(list, isSave)).toList();
+    // list.map((list) => Cliente.fromMap(list));
+
+    return res;
+  }
+
+  static Future<void> setRawTable(
+      Iterable list, ProgressDialog prProgress) async {
+    // myDb.delCliente();
+    final db = await DmModule.database();
+    List<Produto> res;
+    int i;
+
+    await db.transaction((txn) async {
+      res = list.map((list) => Produto.fromMap(list, false)).toList();
+      prProgress.show(max: res.length, msg: 'Atualizando produtos...');
+
+      sql.Batch batch = txn.batch();
+      i = 0;
+      for (var produto in res) {
+        i++;
+        // print(i);
+        batch.insert(
+          'produtos',
+          {
+            'id': produto.id,
+            'descricao': produto.descricao,
+            'idcategoria': produto.idcategoria,
+            'barras': produto.barras,
+            'qte': produto.qte,
+            'preco': produto.preco,
+            'unidade': produto.unidade,
+            'atacado': produto.atacado,
+            'qteminatacado': produto.qteminatacado,
+            'estoque': produto.estoque,
+            'imagem': produto.imagem,
+          },
+          conflictAlgorithm: sql.ConflictAlgorithm.replace,
+        );
+        if (i % 1000 == 0) {
+          prProgress.update(value: i, msg: 'Atualizando produtos...');
+          await batch.commit();
+        }
+      }
+      prProgress.update(value: i, msg: 'Atualizando produtos...');
+
+      await batch.commit();
+    });
+  }
+
+  static Future<List<Produto>> loadProdutosConta() async {
+    _items.clear();
+    List<Map<String, dynamic>> res;
+    res = await DmModule.getData('produtos', 'qte', '>', '0');
+
+    return setTable(res, false);
+  }
+
+  static Future<void> resetProdutos() {
+    return DmModule.updTable('update produtos set qte=0');
+  }
+
+  List<Produto> get items {
+    return [..._items];
+  }
+
+  int get itemsCount {
+    return _items.length;
+  }
+
+  Produto itemByIndex(int index) {
+    return _items[index];
+  }
+
+  static void addReplaceProduto(Produto produto) {
+    _items.add(produto);
+    DmModule.insert(
+      'produtos',
+      {
+        'id': produto.id,
+        'descricao': produto.descricao,
+        'idcategoria': produto.idcategoria,
+        'barras': produto.barras,
+        'qte': produto.qte,
+        'preco': produto.preco,
+        'unidade': produto.unidade,
+        'atacado': produto.atacado,
+        'qteminatacado': produto.qteminatacado,
+        'estoque': produto.estoque,
+        'imagem': produto.imagem,
+      },
+    );
+  }
+}
