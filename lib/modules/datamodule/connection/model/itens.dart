@@ -25,7 +25,19 @@ class Item {
     this.totalfmt,
     this.enviado,
   );
-
+  Map toJson() => {
+        'id': id,
+        'idpedido': idpedido,
+        'idproduto': idproduto,
+        'descricao': descricao,
+        'unidade': unidade,
+        'qtde': qtde,
+        'qteminatacado': qteminatacado,
+        'valor': valor,
+        'atacado': atacado,
+        'totalfmt': totalfmt,
+        'enviado': enviado,
+      };
   factory Item.fromMap(Map<String, dynamic> dados, bool toDb) {
     Item item = Item(
       dados['id'],

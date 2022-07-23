@@ -29,7 +29,20 @@ class Cliente {
     this.latitude,
     this.longitude,
   );
-
+  Map toJson() => {
+        'id': id,
+        'nome': nome,
+        'fantasia': fantasia,
+        'endereco': endereco,
+        'numero': numero,
+        'bairro': bairro,
+        'cep': cep,
+        'telefone': telefone,
+        'uf': uf,
+        'municipio': municipio,
+        'latitude': latitude,
+        'longitude': longitude,
+      };
   factory Cliente.fromMap(Map<String, dynamic> dados, bool toDb) {
     Cliente cliente = Cliente(
       dados['id'],

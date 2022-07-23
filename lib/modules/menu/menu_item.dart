@@ -19,10 +19,16 @@ class MenuItem extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Padding(
-        padding: const EdgeInsets.only(right: 8.0, bottom: 15, left: 8),
+        padding: const EdgeInsets.only(right: 8.0, bottom: 8, left: 8),
         child: Container(
-          color: Colors.white54,
-          width: 145,
+          // color: Colors.white54,
+          width: 146,
+          height: 75,
+
+          decoration: const BoxDecoration(
+            color: Colors.white54,
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
           child: InkWell(
             splashColor: Colors.blue,
             onTap: () {

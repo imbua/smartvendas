@@ -10,6 +10,7 @@ class Pedido {
   double total = 0.00;
   String totalfmt = '';
   int enviado = 0;
+  String formapgto = '';
   Pedido(
     this.id,
     this.idvendedor,
@@ -20,7 +21,21 @@ class Pedido {
     this.total,
     this.totalfmt,
     this.enviado,
+    this.formapgto,
   );
+
+  Map toJson() => {
+        'id': id,
+        'idvendedor': idvendedor,
+        'nomevendedor': nomevendedor,
+        'idcliente': idcliente,
+        'nomecliente': nomecliente,
+        'datapedido': datapedido,
+        'total': total,
+        'totalfmt': totalfmt,
+        'enviado': enviado,
+        'formapgto': formapgto,
+      };
 
   factory Pedido.fromMap(Map<String, dynamic> dados, bool toDb) {
     Pedido pedido = Pedido(
@@ -33,6 +48,7 @@ class Pedido {
       dados['total'],
       dados['totalfmt'],
       dados['enviado'],
+      dados['formapgto'],
     );
     if (toDb) {
       PedidosProvider.addUpdatePedido(pedido);
@@ -52,6 +68,7 @@ class Pedido {
     dados['total'] = total;
     dados['totalfmt'] = totalfmt;
     dados['enviado'] = enviado;
+    dados['formapgto'] = formapgto;
     return dados;
   }
 
@@ -65,5 +82,6 @@ class Pedido {
     total = dados['total'];
     totalfmt = dados['totalfmt'];
     enviado = dados['enviado'];
+    formapgto = dados['formapgto'];
   }
 }

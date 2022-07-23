@@ -11,7 +11,8 @@ class ProdutosImagemProvider {
     if (search == '' || search.isEmpty) {
       res = await DmModule.getTable('produtosimagem');
     } else {
-      res = await DmModule.getNearestData('produtosimagem', 'imagem', search);
+      res = await DmModule.getNearestData(
+          'produtosimagem', 'imagem', search, false);
     }
 
     return setTable(res, false);

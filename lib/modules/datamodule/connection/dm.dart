@@ -25,10 +25,11 @@ class DmModule {
       "CREATE TABLE IF NOT EXISTS produtosimagem (id TEXT PRIMARY KEY, imagem TEXT);",
       "CREATE TABLE IF NOT EXISTS clientes (id TEXT PRIMARY KEY,nome  TEXT,fantasia  TEXT,endereco  TEXT,numero  TEXT,bairro  TEXT,cep  TEXT,telefone  TEXT,uf  TEXT,municipio  TEXT,latitude  TEXT,longitude  TEXT, alterado  INTEGER);",
       "CREATE TABLE IF NOT EXISTS categorias (id TEXT PRIMARY KEY, descricao TEXT);",
-      "CREATE TABLE IF NOT EXISTS pedidos (id TEXT PRIMARY KEY, idvendedor  TEXT, nomevendedor  TEXT,idcliente  TEXT,nomecliente  TEXT,datapedido  TEXT,total  FLOAT,totalfmt  TEXT,enviado  INTEGER);",
+      "CREATE TABLE IF NOT EXISTS formapgto (id TEXT PRIMARY KEY, descricao TEXT);",
+      "CREATE TABLE IF NOT EXISTS pedidos (id TEXT PRIMARY KEY, idvendedor  TEXT, nomevendedor  TEXT,idcliente  TEXT,nomecliente  TEXT,datapedido  TEXT,total  FLOAT,totalfmt  TEXT,enviado  INTEGER, formapgto TEXT);",
       "CREATE TABLE IF NOT EXISTS itens (id TEXT PRIMARY KEY ,idpedido   TEXT, idproduto   TEXT, descricao   TEXT, unidade   TEXT,qtde   INTEGER,qteminatacado INTEGER, valor   FLOAT,atacado   FLOAT, totalfmt   TEXT, enviado   INTEGER);",
-      "CREATE INDEX ibarras  ON produtos (barras);",
-      "CREATE INDEX idescr  ON produtos (descricao);",
+      "CREATE INDEX IF NOT EXISTS ibarras  ON produtos (barras);",
+      "CREATE INDEX IF NOT EXISTS idescr  ON produtos (descricao);",
     ];
 
     for (String query in queryes) {
@@ -98,7 +99,7 @@ class DmModule {
   static Future<List<Map<String, dynamic>>> getTable(String table) async {
     final db = await DmModule.database();
     return await db.transaction((txn) async {
-      return txn.query(table);
+      return await txn.query(table);
     });
   }
 
@@ -118,11 +119,15 @@ class DmModule {
   }
 
   static Future<List<Map<String, dynamic>>> getNearestData(
-      String table, String campo, String conteudo) async {
+      String table, String campo, String conteudo, bool comecoexato) async {
     final db = await DmModule.database();
+    String _start = '';
+    if (comecoexato == false) {
+      _start = '%';
+    }
     return await db.transaction((txn) => txn.query(table,
         where: campo + " like  ?",
-        whereArgs: ['%' + conteudo + '%'],
+        whereArgs: [_start + conteudo + '%'],
         limit: 30));
   }
 

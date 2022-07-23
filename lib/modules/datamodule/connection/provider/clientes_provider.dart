@@ -1,5 +1,6 @@
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
+import 'package:smartvendas/shared/funcoes.dart';
 
 class ClientesProvider {
   static final List<Cliente> _items = [];
@@ -11,7 +12,12 @@ class ClientesProvider {
     if (searchNome == '' || searchNome.isEmpty) {
       res = await DmModule.getTable('clientes');
     } else {
-      res = await DmModule.getNearestData('clientes', 'nome', searchNome);
+      if (Funcoes.isNumber(searchNome)) {
+        res = await DmModule.getNearestData('clientes', 'id', searchNome, true);
+      } else {
+        res = await DmModule.getNearestData(
+            'clientes', 'nome', searchNome, false);
+      }
     }
 
     return setTable(res, false);

@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
-import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
+import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/itens.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/itens_provider.dart';
@@ -17,10 +17,17 @@ import 'package:jiffy/jiffy.dart';
 class PedidoConta extends StatelessWidget {
   const PedidoConta({Key? key}) : super(key: key);
 
+  DropdownMenuItem<String> buildMenuItem(String item) => DropdownMenuItem(
+        value: item,
+        child: Text(item),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final Cliente lstCliente =
-        ModalRoute.of(context)!.settings.arguments as Cliente;
+    final PedidoArguments args =
+        ModalRoute.of(context)!.settings.arguments as PedidoArguments;
+    RxString? _itemSelecionado = "".obs;
+    final msg = ScaffoldMessenger.of(context);
 
     AppStore ctrlApp = Get.find<AppStore>();
     return SafeArea(
@@ -78,25 +85,40 @@ class PedidoConta extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.save, color: Colors.black54),
                 onPressed: () async {
-                  if (ctrlApp.totalGeralProdutos.value > 0) {
-                    PedidosProvider.addUpdatePedido(Pedido(
-                      ctrlApp.getPedidoId(),
-                      ctrlApp.usuarioId.value.toString(),
-                      ctrlApp.usuario.value.toString(),
-                      lstCliente.id.toString(),
-                      lstCliente.nome,
-                      Jiffy().format('dd[/]MM[/]yyyy'),
-                      ctrlApp.totalGeralProdutos.value,
-                      ctrlApp.totalGeralProdutosFmt.value,
-                      0,
-                    ));
-                    ProdutosProvider.loadProdutosConta().then((value) {
-                      int i;
-                      String id = ItensProvider.getItemId(
-                          ctrlApp.usuarioId.value.toString());
+                  if (_itemSelecionado.value == '') {
+                    msg.showSnackBar(
+                      const SnackBar(
+                        content: Text('Escolha a forma de pagamento'),
+                      ),
+                    );
+                    throw "Escolha a forma de pagamento";
+                  }
 
+                  if (ctrlApp.totalGeralProdutos.value > 0) {
+                    final List<Pedido> _pedido = [];
+                    final List<Item> _lstItens = [];
+
+                    _pedido.add(
+                      Pedido(
+                        ctrlApp.getPedidoId(),
+                        ctrlApp.usuarioId.value.toString(),
+                        ctrlApp.usuario.value.toString(),
+                        args.lstCliente.id.toString(),
+                        args.lstCliente.nome,
+                        Jiffy().format('dd[/]MM[/]yyyy'),
+                        ctrlApp.totalGeralProdutos.value,
+                        ctrlApp.totalGeralProdutosFmt.value,
+                        0,
+                        _itemSelecionado.value,
+                      ),
+                    );
+                    int i;
+                    String id = ItensProvider.getItemId(
+                        ctrlApp.usuarioId.value.toString());
+
+                    ProdutosProvider.loadProdutosConta().then((value) {
                       for (i = 0; i < value.length; i++) {
-                        ItensProvider.addUpdateItem(Item(
+                        _lstItens.add(Item(
                             id + i.toString(),
                             ctrlApp.pedidoId.value,
                             value[i].id,
@@ -109,12 +131,34 @@ class PedidoConta extends StatelessWidget {
                             value[i].valorfmt,
                             0));
                       }
+
+                      if (args.origem == 'dav') {
+                        sendDAV(context, args.lstCliente, _pedido, _lstItens)
+                            .then((resultado) {
+                          if (resultado == true) {
+                            PedidosProvider.resetProdutos();
+
+                            Navigator.of(context).popUntil(
+                                (ModalRoute.withName(AppRoutes.menu)));
+                          }
+                        });
+                      } else {
+                        PedidosProvider.addUpdatePedido(_pedido[0]);
+
+                        ProdutosProvider.loadProdutosConta().then((value) {
+                          for (var item in _lstItens) {
+                            ItensProvider.addUpdateItem(item);
+                          }
+                        });
+
+                        PedidosProvider.resetProdutos();
+
+                        DmModule.getCount('pedidos').then((resultado) =>
+                            ctrlApp.totalPedidos.value = resultado);
+                        Navigator.of(context)
+                            .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                      }
                     });
-                    await PedidosProvider.resetProdutos();
-                    ctrlApp.totalPedidos.value =
-                        await DmModule.getCount('pedidos');
-                    Navigator.of(context)
-                        .popUntil((ModalRoute.withName(AppRoutes.menu)));
                   }
                 },
               ),
@@ -148,13 +192,23 @@ class PedidoConta extends StatelessWidget {
                             height: 20,
                           ),
                     Text(
-                      lstCliente.nome,
+                      args.lstCliente.nome,
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w900),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text('Data do Pedido: ' +
-                        Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                    Row(
+                      children: [
+                        Text('Data do Pedido: ' +
+                            Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                        const Spacer(),
+                        Text(
+                          args.origem,
+                          style: const TextStyle(
+                              color: Colors.black, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -166,6 +220,56 @@ class PedidoConta extends StatelessWidget {
           const SizedBox(height: 10),
           Expanded(
             child: ProdutosBuilder(ctrlApp: ctrlApp, isConta: true),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 8,
+              ),
+              Container(
+                // alignment: Alignment.topCenter,
+                height: 40,
+
+                // color: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15.0),
+                  border: Border.all(
+                      color: corBotao, style: BorderStyle.solid, width: 1),
+                ),
+                width: MediaQuery.of(context).size.width - 100,
+                child: Obx(
+                  () => DropdownButton<String>(
+                    dropdownColor: Colors.green[100],
+                    // style: TextStyle(),
+                    isExpanded: true,
+                    hint: const Text('Forma de pagamento'),
+                    items: ctrlApp.lstFormaPgto.map(buildMenuItem).toList(),
+                    value: _itemSelecionado.value == ""
+                        ? null
+                        : _itemSelecionado.value,
+                    onChanged: (itemSelecionado) {
+                      _itemSelecionado.value = itemSelecionado!;
+                    },
+                    focusColor: Colors.black,
+                    selectedItemBuilder: (BuildContext context) {
+                      return ctrlApp.lstFormaPgto.map<Widget>((String item) {
+                        return Container(
+                          padding: const EdgeInsets.all(10),
+                          alignment: Alignment.centerLeft,
+                          height: 20,
+                          child: Text(item),
+                        );
+                      }).toList();
+                    },
+
+                    // selectedItemBuilder: _itemSelecionado,
+                  ),
+                ),
+              ),
+            ],
           ),
         ]),
       ),

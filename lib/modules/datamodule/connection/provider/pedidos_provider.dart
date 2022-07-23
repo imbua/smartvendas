@@ -12,7 +12,8 @@ class PedidosProvider {
     if (searchNome == '' || searchNome.isEmpty) {
       res = await DmModule.getTable('pedidos');
     } else {
-      res = await DmModule.getNearestData('pedidos', 'descricao', searchNome);
+      res = await DmModule.getNearestData(
+          'pedidos', 'descricao', searchNome, false);
     }
     return setTable(res, false);
   }
@@ -20,7 +21,7 @@ class PedidosProvider {
   static Future<List<Pedido>> getQueryPedido(String id) async {
     _items.clear();
     List<Map<String, dynamic>> res;
-    res = await DmModule.getNearestData('pedidos', 'id', id);
+    res = await DmModule.getNearestData('pedidos', 'id', id, true);
     pedido = setTable(res, false);
     return pedido;
   }
@@ -79,6 +80,7 @@ class PedidosProvider {
         'total': pedido.total,
         'totalfmt': pedido.totalfmt,
         'enviado': pedido.enviado,
+        'formapgto': pedido.formapgto,
       },
     );
   }

@@ -95,8 +95,8 @@ class ProdutosList extends StatelessWidget {
           Obx(
             () => (Expanded(
               child: FutureBuilder<List<Produto>>(
-                  future:
-                      ProdutosProvider.loadProdutos(ctrlApp.searchBar.value),
+                  future: ProdutosProvider.loadProdutos(
+                      ctrlApp.searchBar.value, ''),
                   initialData: const [],
                   builder: (BuildContext context, AsyncSnapshot snapshot) {
                     List<Produto> lstProduto = snapshot.data;

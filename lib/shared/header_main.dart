@@ -50,6 +50,7 @@ class HeaderMain extends StatelessWidget {
 class HeaderInput extends StatelessWidget {
   final IconData iconeMain;
   final String titulo;
+
   final double altura;
 
   const HeaderInput({

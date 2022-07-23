@@ -116,9 +116,26 @@ class _PedidoListagemState extends State<PedidoListagem> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        lstPedido[index].id.toString(),
-                                        style: const TextStyle(fontSize: 12),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            lstPedido[index].id.toString(),
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                color: corText,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            lstPedido[index]
+                                                .formapgto
+                                                .toString(),
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: corText,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
                                       ),
                                       Text(
                                           lstPedido[index]
@@ -126,19 +143,25 @@ class _PedidoListagemState extends State<PedidoListagem> {
                                               .toString(),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontSize: 14)),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                   subtitle: Row(
                                     children: [
                                       Text(
                                         lstPedido[index].datapedido.toString(),
-                                        style: const TextStyle(fontSize: 12),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       const Spacer(),
                                       Text(
                                         lstPedido[index].totalfmt,
-                                        style: const TextStyle(fontSize: 12),
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),

@@ -117,7 +117,15 @@ class PedidoAlterar extends StatelessWidget {
                           fontSize: 14, fontWeight: FontWeight.w900),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text('Data do Pedido: ' + lstPedido[0].datapedido),
+                    Row(
+                      children: [
+                        Text('Data do Pedido: ' + lstPedido[0].datapedido),
+                        const Spacer(
+                          flex: 1,
+                        ),
+                        Text(lstPedido[0].formapgto),
+                      ],
+                    ),
                   ],
                 ),
               ),

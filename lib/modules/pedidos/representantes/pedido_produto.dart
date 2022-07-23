@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
 import 'package:smartvendas/shared/funcoes.dart';
@@ -49,8 +50,57 @@ class PedidoProdutosControl extends StatefulWidget {
   State<PedidoProdutosControl> createState() => _PedidoProdutosControlState();
 }
 
+// _listCategorias(BuildContext context, Function statechange) {
+//   List<Categoria> lstCategoria = ctrlApp.lstCategoria;
+
+//   return SizedBox(
+//     width: MediaQuery.of(context).size.width - 85,
+//     child: SingleChildScrollView(
+//       scrollDirection: Axis.horizontal,
+//       child: Wrap(
+//         direction: Axis.horizontal,
+//         children: List.generate(lstCategoria.length, (index) {
+//           return Padding(
+//             padding: const EdgeInsets.only(left: 8.0, top: 2, bottom: 2),
+//             child: TextButton(
+//               onPressed: () {
+//                 // final String _str = ctrlApp.searchBar.value;
+
+//                 ctrlApp.searchBarWithCategoria.value = lstCategoria[index].id;
+//                 statechange();
+//                 // ctrlApp.searchBar.value = '';
+//                 // ctrlApp.searchBar.value = _str;
+//               },
+//               style: ButtonStyle(
+//                   foregroundColor: MaterialStateProperty.all(Colors.white),
+//                   backgroundColor: MaterialStateProperty.all(corBotao)),
+//               child: Text(lstCategoria[index].descricao),
+//             ),
+//           );
+//         }),
+//       ),
+//     ),
+//   );
+// }
+
 class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
   final TextEditingController _edSearch = TextEditingController();
+  Categoria _itemSelecionado = Categoria('', '');
+
+  DropdownMenuItem<Categoria> buildMenuItem(Categoria item) => DropdownMenuItem(
+        value: item,
+        child: Text(item.descricao),
+      );
+
+  void mudaEstado() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +167,8 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
                 onPressed: () async {
                   if (widget.ctrlApp.totalGeralProdutos.value > 0) {
                     await Navigator.of(context).pushNamed(AppRoutes.pedidoConta,
-                        arguments: widget.lstCliente);
+                        arguments:
+                            PedidoArguments(widget.lstCliente, 'PEDIDO'));
                   }
                   setState(() {});
                 },
@@ -159,8 +210,43 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
               ),
             ],
           ),
-          const SizedBox(
-            height: 10,
+          // Categorias(),
+          Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 2, bottom: 2),
+                child: TextButton(
+                  onPressed: () {
+                    ctrlApp.searchBarWithCategoria.value = '';
+                    _itemSelecionado = Categoria('', '');
+
+                    setState(() {});
+                  },
+                  style: ButtonStyle(
+                      foregroundColor: MaterialStateProperty.all(Colors.white),
+                      backgroundColor: MaterialStateProperty.all(
+                          const Color.fromARGB(255, 97, 111, 134))),
+                  child: const Text('Todos'),
+                ),
+              ),
+
+              SizedBox(
+                width: MediaQuery.of(context).size.width - 85,
+                child: DropdownButton<Categoria>(
+                  items: ctrlApp.lstCategoria.map(buildMenuItem).toList(),
+                  value: _itemSelecionado.id == "" ? null : _itemSelecionado,
+                  onChanged: (itemSelecionado) {
+                    ctrlApp.searchBarWithCategoria.value = itemSelecionado!.id;
+                    _itemSelecionado = itemSelecionado;
+
+                    mudaEstado();
+                  },
+                  // selectedItemBuilder: _itemSelecionado,
+                ),
+              ),
+
+              // _listCategorias(context, mudaEstado),
+            ],
           ),
           SizedBox(
             height: 60,
@@ -204,12 +290,6 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
                   ],
                 )),
           ),
-
-          // Row(
-          //   children: [
-          // ProdutosCategoriaBuilder(ctrlApp: widget.ctrlApp),
-          //   ],
-          // ),
           Expanded(
             child: ProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: false),
           ),

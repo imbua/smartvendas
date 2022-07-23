@@ -11,11 +11,13 @@ import 'login_botao.dart';
 class loginFrame extends StatelessWidget {
   final TextEditingController usuarioController;
   final TextEditingController senhaController;
+  final BuildContext loginPageContext;
 
   const loginFrame(
       {Key? key,
       required this.usuarioController,
-      required this.senhaController})
+      required this.senhaController,
+      required this.loginPageContext})
       : super(key: key);
 
   @override
@@ -115,7 +117,7 @@ class loginFrame extends StatelessWidget {
             ),
           ),
         ),
-        const sbBotaoAcessar(),
+        sbBotaoAcessar(loginContext: loginPageContext),
       ],
     );
   }

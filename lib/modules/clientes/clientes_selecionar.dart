@@ -13,6 +13,16 @@ import 'package:smartvendas/shared/variaveis.dart';
 class ClienteSelecionar extends StatelessWidget {
   const ClienteSelecionar({Key? key}) : super(key: key);
 
+  _doChoice(BuildContext context, String choice, Cliente cliente) {
+    if (choice == 'dav') {
+      Navigator.of(context)
+          .pushReplacementNamed(AppRoutes.dav, arguments: cliente);
+    } else {
+      Navigator.of(context)
+          .pushReplacementNamed(AppRoutes.pedidoProduto, arguments: cliente);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final String _choice = ModalRoute.of(context)!.settings.arguments as String;
@@ -105,15 +115,7 @@ class ClienteSelecionar extends StatelessWidget {
                               onTap: () async {
                                 PedidosProvider.resetProdutos();
                                 ctrlApp.totalGeralProdutosFmt.value = '';
-                                if (_choice == 'dav') {
-                                  Navigator.of(context).pushReplacementNamed(
-                                      AppRoutes.dav,
-                                      arguments: lstCliente[index]);
-                                } else {
-                                  Navigator.of(context).pushReplacementNamed(
-                                      AppRoutes.pedidoProduto,
-                                      arguments: lstCliente[index]);
-                                }
+                                _doChoice(context, _choice, lstCliente[index]);
                               },
                               child: ListTile(
                                 title: Text(
@@ -124,11 +126,18 @@ class ClienteSelecionar extends StatelessWidget {
                                       color: Colors.blueGrey[800],
                                       fontSize: 16),
                                 ),
-                                subtitle: Text(
-                                    lstCliente[index].municipio +
-                                        ' - ' +
-                                        lstCliente[index].uf,
-                                    style: const TextStyle(fontSize: 12)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(lstCliente[index].id,
+                                        style: const TextStyle(fontSize: 12)),
+                                    Text(
+                                        lstCliente[index].municipio +
+                                            ' - ' +
+                                            lstCliente[index].uf,
+                                        style: const TextStyle(fontSize: 12)),
+                                  ],
+                                ),
                               ),
                             ),
                           );
@@ -140,6 +149,26 @@ class ClienteSelecionar extends StatelessWidget {
             )),
           ),
         ]),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: corBotao,
+          child: IconButton(
+            onPressed: () {
+              Navigator.of(context)
+                  .pushNamed(AppRoutes.clienteEdit)
+                  .then((value) {
+                if (value is Cliente) {
+                  _doChoice(context, _choice, value);
+                }
+              });
+            },
+            icon: const Icon(Icons.people_alt),
+            iconSize: 30,
+            color: Colors.white,
+          ),
+          onPressed: () {
+            // Add your onPressed code here!
+          },
+        ),
       ),
     );
   }

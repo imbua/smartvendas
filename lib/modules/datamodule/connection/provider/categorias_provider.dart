@@ -11,7 +11,8 @@ class CategoriasProvider {
     if (search == '' || search.isEmpty) {
       res = await DmModule.getTable('categorias');
     } else {
-      res = await DmModule.getNearestData('categorias', 'descricao', search);
+      res = await DmModule.getNearestData(
+          'categorias', 'descricao', search, false);
     }
 
     return setTable(res, false);

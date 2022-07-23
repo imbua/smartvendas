@@ -9,10 +9,15 @@ import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
 import 'package:smartvendas/shared/show_message.dart';
+import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 class sbBotaoAcessar extends StatelessWidget {
-  const sbBotaoAcessar({Key? key}) : super(key: key);
+  final BuildContext loginContext;
+  const sbBotaoAcessar({Key? key, required this.loginContext})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -68,14 +73,45 @@ class sbBotaoAcessar extends StatelessWidget {
                     (ctrlApp.usuarioGravado.value == ctrlApp.usuario.value) &&
                     (ctrlApp.senhaGravado.value == ctrlApp.senha.value)) {
                   DmModule.totalCounts();
+
+                  CategoriasProvider.loadCategorias('').then((list) {
+                    ctrlApp.lstCategoria.clear();
+                    for (var item in list) {
+                      ctrlApp.lstCategoria.add(item);
+                    }
+                  });
+
+                  FormaPgtoProvider.loadFormaPgto('').then((list) {
+                    ctrlApp.lstFormaPgto.clear();
+                    for (var item in list) {
+                      ctrlApp.lstFormaPgto.add(item.descricao);
+                    }
+                  });
+
                   Navigator.of(context).pushNamed(AppRoutes.menu);
                 } else {
                   try {
-                    loginUsuario(context, ctrlApp.loginRemoto).then((value) {
-                      if (ctrlApp.usuarioId.value != 0) {
+                    loginUsuario(loginContext, ctrlApp.loginRemoto)
+                        .then((value) {
+                      if (value.isNotEmpty) {
                         if (ctrlApp.usuarioId.value != 0) {
-                          DmModule.totalCounts();
-                          Navigator.of(context).pushNamed(AppRoutes.menu);
+                          if (ctrlApp.usuarioId.value != 0) {
+                            CategoriasProvider.loadCategorias('').then((list) {
+                              ctrlApp.lstCategoria.clear();
+                              for (var item in list) {
+                                ctrlApp.lstCategoria.add(item);
+                              }
+                            });
+
+                            FormaPgtoProvider.loadFormaPgto('').then((list) {
+                              ctrlApp.lstFormaPgto.clear();
+                              for (var item in list) {
+                                ctrlApp.lstFormaPgto.add(item.descricao);
+                              }
+                            });
+                            DmModule.totalCounts();
+                            Navigator.of(context).pushNamed(AppRoutes.menu);
+                          }
                         }
                       }
                     });
@@ -94,17 +130,40 @@ class sbBotaoAcessar extends StatelessWidget {
   //   return ctrlApp.usuarioId.value;
   // }
 
-  Future<List<Usuario>> loginUsuario(BuildContext context, String url) async {
-    final msg = ScaffoldMessenger.of(context);
-    try {
-      final response = await http.get(Uri.parse(url));
+  Future<List<Usuario>> loginUsuario(
+      BuildContext loginContext, String url) async {
+    final msg = ScaffoldMessenger.of(loginContext);
+    final ProgressDialog prProgress = ProgressDialog(context: loginContext);
 
+    try {
+      // http.Response(conenc)
+      prProgress.show(
+          max: 1, msgFontSize: 12, msg: 'Conectando ao servidor...');
+      prProgress.update(value: 0, msg: 'Conectando ao servidor...');
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      prProgress.update(value: 1, msg: 'Conectado!');
+      prProgress.close;
+      // Navigator.of(loginContext).pop();
+
+      if (response.statusCode != 200) {
+        // msg.showSnackBar(
+        //   const SnackBar(
+        //     content: Text('Erro no link do login, falar com o desenvolvedor!'),
+        //   ),
+        // );
+        throw "Erro no link do login, response Error:" +
+            response.statusCode.toString();
+      }
       // ignore: unrelated_type_equality_checks
       if (response.statusCode == 200) {
         String data = response.body;
+
         // print(data);
         if (data != 'erro') {
           Iterable list = json.decode(response.body);
+          prProgress.close;
+          Navigator.of(loginContext).pop();
           return list.map((list) => Usuario.fromJson(list)).toList();
 
           // List<Usuario> _usuario = json.decode(response.body);
@@ -112,13 +171,16 @@ class sbBotaoAcessar extends StatelessWidget {
           //     .map((_usuario) => Usuario.fromJson(_usuario))
           //     .toList();
         } else {
+          prProgress.close;
+
           msg.showSnackBar(
             const SnackBar(
               content: Text('Usuário, não encontrado!'),
             ),
           );
-          throw "Erro no login, response Error:" +
-              response.statusCode.toString();
+          Navigator.of(loginContext).pop();
+
+          return [];
         }
       } else {
         msg.showSnackBar(
@@ -130,13 +192,18 @@ class sbBotaoAcessar extends StatelessWidget {
         throw "Erro no login, response Error:" + response.statusCode.toString();
       }
     } catch (exception) {
+      prProgress.close;
+      // Navigator.of(loginContext).pop();
+
       msg.showSnackBar(
         SnackBar(
           content:
               Text("Erro no login, exception Error:" + exception.toString()),
         ),
       );
-      throw "Error on http." + exception.toString();
+
+      return [];
+      // throw "Error on http." + exception.toString();
     }
   }
 }

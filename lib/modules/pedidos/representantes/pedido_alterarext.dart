@@ -48,15 +48,15 @@ String getPrice(Item item) {
 }
 
 class ItensBuilder extends StatefulWidget {
-  AppStore ctrlApp = Get.find<AppStore>();
   final List<Item> lstCliente;
-  ItensBuilder({Key? key, required this.lstCliente}) : super(key: key);
+  const ItensBuilder({Key? key, required this.lstCliente}) : super(key: key);
 
   @override
   State<ItensBuilder> createState() => _ItensBuilderState();
 }
 
 class _ItensBuilderState extends State<ItensBuilder> {
+  AppStore ctrlApp = Get.find<AppStore>();
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
@@ -121,12 +121,11 @@ class _ItensBuilderState extends State<ItensBuilder> {
                         onPressed: () {
                           setState(() {
                             FuncoesTela.minus(widget.lstCliente, index);
-                            widget.ctrlApp.totalGeralProdutos.value =
+                            ctrlApp.totalGeralProdutos.value =
                                 FuncoesTela.updateTotal(widget.lstCliente);
 
-                            widget.ctrlApp.totalGeralProdutosFmt.value =
-                                formatter.format(
-                                    widget.ctrlApp.totalGeralProdutos.value);
+                            ctrlApp.totalGeralProdutosFmt.value = formatter
+                                .format(ctrlApp.totalGeralProdutos.value);
                           });
                         },
                         child: const Icon(
@@ -145,12 +144,11 @@ class _ItensBuilderState extends State<ItensBuilder> {
                           setState(() {
                             // FuncoesTela._n = widget.lstCliente[index].qtde;
                             FuncoesTela.add(widget.lstCliente, index);
-                            widget.ctrlApp.totalGeralProdutos.value =
+                            ctrlApp.totalGeralProdutos.value =
                                 FuncoesTela.updateTotal(widget.lstCliente);
 
-                            widget.ctrlApp.totalGeralProdutosFmt.value =
-                                formatter.format(
-                                    widget.ctrlApp.totalGeralProdutos.value);
+                            ctrlApp.totalGeralProdutosFmt.value = formatter
+                                .format(ctrlApp.totalGeralProdutos.value);
                           });
                         },
                         child: const Icon(

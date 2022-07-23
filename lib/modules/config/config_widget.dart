@@ -83,19 +83,22 @@ class _ConfigWidgetState extends State<ConfigWidget> {
             onPress: () {
               ctrlApp.userChaveApp.value = txtChaveApp.text;
               getClientesWeb(context, ctrlApp.cwHostConnection).then((value) {
-                ctrlApp.usuarioId.value = 0;
-                DmModule.delTable('clientes', '', '');
-                DmModule.delTable('categorias', '', '');
-                DmModule.delTable('produtos', '', '');
-                DmModule.delTable('produtosimagem', '', '');
-                ctrlApp.gravarIni();
-                Navigator.of(context).pop();
+                if (value == true) {
+                  ctrlApp.usuarioId.value = 0;
+                  DmModule.delTable('clientes', '', '');
+                  DmModule.delTable('categorias', '', '');
+                  DmModule.delTable('produtos', '', '');
+                  DmModule.delTable('produtosimagem', '', '');
+                  ctrlApp.gravarIni();
+                  Navigator.of(context).pop();
+                }
               });
 
-              // DmModule.sqlQuery('drop table produtos;');
+              // DmModule.sqlQuery('drop table pedidos;');
               // DmModule.database().then((value) {
               // DmModule.criaBanco(value);
-              // });
+              // }
+              // );
             },
           ),
         ],
@@ -104,14 +107,16 @@ class _ConfigWidgetState extends State<ConfigWidget> {
   }
 }
 
-Future<void> getClientesWeb(BuildContext context, String url) async {
+Future<bool> getClientesWeb(BuildContext context, String url) async {
+  final msg = ScaffoldMessenger.of(context);
+  var _bool = true;
   try {
-    final msg = ScaffoldMessenger.of(context);
     // int i;
     // final response = await http.get(Uri.parse(url));
     final response = await http.post(Uri.parse('http://' + url),
         headers: {'Content-type': 'application/x-www-form-urlencoded'},
         body: Funcoes.doXmlGetChaveAmazon(ctrlApp.userChaveApp.value));
+
     if (response.statusCode == 200) {
       String data = response.body;
       // print(data);
@@ -135,6 +140,7 @@ Future<void> getClientesWeb(BuildContext context, String url) async {
         //     .map((_usuario) => Usuario.fromJson(_usuario))
         //     .toList();
       } else {
+        _bool = false;
         msg.showSnackBar(
           const SnackBar(
             content: Text('Chave, não encontrado!'),
@@ -142,6 +148,7 @@ Future<void> getClientesWeb(BuildContext context, String url) async {
         );
       }
     } else {
+      _bool = false;
       msg.showSnackBar(
         SnackBar(
           content: Text("Erro no config, response Error:" +
@@ -151,8 +158,15 @@ Future<void> getClientesWeb(BuildContext context, String url) async {
       throw "Erro no config, response Error:" + response.statusCode.toString();
     }
   } catch (exception) {
+    _bool = false;
+    msg.showSnackBar(
+      SnackBar(
+        content: Text("Error on http." + exception.toString()),
+      ),
+    );
     throw "Error on http." + exception.toString();
   }
+  return _bool;
 }
 
 class ItemList extends StatelessWidget {

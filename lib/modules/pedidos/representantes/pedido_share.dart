@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
-import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
-import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
 import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/shared/number_editcustom.dart';
@@ -63,7 +61,8 @@ class FuncoesTela {
   static Future<List<Produto>> loadBuilder(bool isconta) {
     return isconta
         ? ProdutosProvider.loadProdutosConta()
-        : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
+        : ProdutosProvider.loadProdutos(
+            ctrlApp.searchBar.value, ctrlApp.searchBarWithCategoria.value);
   }
 }
 
@@ -101,13 +100,16 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                 _controllers.add(TextEditingController());
 
                 return Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(1.0),
                   child: ExpansionTileCard(
                     // leading: const CircleAvatar(
                     //   foregroundImage: AssetImage("images/compras.png"),
                     //   radius: 20,
                     //   // backgroundImage: Image("images/compras.png"),
                     // ),
+                    // finalPadding: EdgeInsets.only(bottom: 1),
+                    // initialPadding: EdgeInsets.only(bottom: 1),
+                    // contentPadding: EdgeInsets.only(bottom: 1),
                     title: Text(
                       lstProduto[index].descricao,
                       style: const TextStyle(color: corText, fontSize: 16),
@@ -136,31 +138,42 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            Text(
-                              'Vr.Atac.:' + lstProduto[index].atacadofmt,
-                              style: const TextStyle(fontSize: 15),
-                            ),
-                            const Spacer(),
-                            (lstProduto[index].qte) > 0
-                                ? Text(
-                                    lstProduto[index].qte.toString() +
-                                        ' X R\$' +
-                                        formatter.format(
-                                            Funcoes.getValorProduto(
-                                                lstProduto[index])) +
-                                        ' = ' +
-                                        formatter.format(lstProduto[index].qte *
-                                            Funcoes.getValorProduto(
-                                                lstProduto[index])),
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: corText,
-                                        fontWeight: FontWeight.bold))
-                                : const Text(''),
-                          ],
-                        ),
+                        (lstProduto[index].atacado > 0 ||
+                                lstProduto[index].qte > 0)
+                            ? Row(
+                                children: [
+                                  lstProduto[index].atacado > 0
+                                      ? Text(
+                                          'Vr.Atac.:' +
+                                              lstProduto[index].atacadofmt,
+                                          style: const TextStyle(fontSize: 15),
+                                        )
+                                      : const SizedBox(
+                                          width: 1,
+                                        ),
+                                  const Spacer(),
+                                  (lstProduto[index].qte) > 0
+                                      ? Text(
+                                          lstProduto[index].qte.toString() +
+                                              ' X R\$' +
+                                              formatter.format(
+                                                  Funcoes.getValorProduto(
+                                                      lstProduto[index])) +
+                                              ' = ' +
+                                              formatter.format(
+                                                  lstProduto[index].qte *
+                                                      Funcoes.getValorProduto(
+                                                          lstProduto[index])),
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: corText,
+                                              fontWeight: FontWeight.bold))
+                                      : const Text(''),
+                                ],
+                              )
+                            : const SizedBox(
+                                height: 1,
+                              ),
                       ],
                     ),
                     children: [
@@ -261,48 +274,6 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
             );
           }
           // return const Center(child: CircularProgressIndicator());
-        });
-  }
-}
-
-///***********************************/
-///categoria/
-
-class ProdutosCategoriaBuilder extends StatelessWidget {
-  final AppStore ctrlApp;
-  const ProdutosCategoriaBuilder({Key? key, required this.ctrlApp})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Categoria>>(
-        future: CategoriasProvider.loadCategorias(''),
-        initialData: const [],
-        builder: (BuildContext context, AsyncSnapshot snapshot) {
-          List<Categoria> lstCategoria = snapshot.data;
-
-          if (!snapshot.hasData) {
-            // || snapshot.data.lenght == 0
-            return const Center(
-              child: Text('Nenhum registro encontrado!'),
-            );
-          } else {
-            return ListView.builder(
-                itemCount: lstCategoria.length,
-                itemBuilder: (BuildContext context, int index) {
-                  // _controllers.add(TextEditingController());
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SizedBox(
-                      height: 30,
-                      width: 30,
-                      child: TextButton(
-                          onPressed: () {},
-                          child: Text(lstCategoria[index].descricao)),
-                    ),
-                  );
-                });
-          }
         });
   }
 }

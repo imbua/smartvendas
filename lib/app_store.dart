@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
+import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/store.dart';
 
 class AppStore = _AppStoreBase with Store;
@@ -19,6 +21,7 @@ abstract class _AppStoreBase extends GetxController {
   _AppStoreBase() {
     _init();
     _lerIni();
+    Funcoes.loadPool();
   }
 
   RxBool isOk = false.obs;
@@ -58,6 +61,7 @@ abstract class _AppStoreBase extends GetxController {
       'amz.nbsoftware.com.br/nbsoftkernel/express/route.class.php';
 //variaves do sistema
   RxString searchBar = ''.obs;
+  RxString searchBarWithCategoria = ''.obs;
 
   RxString strLabel = ''.obs;
   String getObxLabel(String label) {
@@ -68,6 +72,8 @@ abstract class _AppStoreBase extends GetxController {
     return strLabel.value;
   }
 
+  List<Categoria> lstCategoria = [];
+  List<String> lstFormaPgto = [];
 //variaveis do pedido
   RxString pedidoId = ''.obs;
   RxString pedidoSubtotal = ''.obs;
@@ -151,7 +157,7 @@ abstract class _AppStoreBase extends GetxController {
     cwHostDbFinan = sp.getString('hostDbFinan') ?? '';
   }
 
-  String ipServerSufixo = '/nbsoftkernellocal/mobile';
+  String ipServerSufixo = '/nbsoftkernel/mobile';
   String ipServer = 'localhost'; //provisório
   String urlToken = 'MTBtZXRyMWNzYnljcjFzdDFhbm8'; //provisório
 

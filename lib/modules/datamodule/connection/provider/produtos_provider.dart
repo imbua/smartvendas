@@ -7,35 +7,24 @@ import 'package:sqflite/sqflite.dart' as sql;
 class ProdutosProvider {
   static final List<Produto> _items = [];
 
-  static Future<List<Produto>> loadProdutos(String search) async {
+  static Future<List<Produto>> loadProdutos(
+      String search, String filtrocategoria) async {
     _items.clear();
     List<Map<String, dynamic>> res;
 
-    if (search == '' || search.isEmpty) {
-      res = await DmModule.sqlQuery(
-          'select * from produtos order by descricao limit 100');
+    if (Funcoes.isNumber(search)) {
+      res = await DmModule.getNearestData('produtos', 'barras', search, false);
     } else {
-      if (Funcoes.isNumber(search)) {
-        res = await DmModule.getNearestData('produtos', 'barras', search);
+      if (filtrocategoria.isEmpty) {
+        res = await DmModule.getNearestData(
+            'produtos', 'descricao', search, false);
       } else {
-        res = await DmModule.getNearestData('produtos', 'descricao', search);
-      }
-    }
-
-    return setTable(res, false);
-  }
-
-  static Future<List<Produto>> loadCategoria(String search) async {
-    _items.clear();
-    List<Map<String, dynamic>> res;
-
-    if (search == '' || search.isEmpty) {
-      res = await DmModule.sqlQuery('select * from categoria order by codigo ');
-    } else {
-      if (Funcoes.isNumber(search)) {
-        res = await DmModule.getNearestData('produtos', 'barras', search);
-      } else {
-        res = await DmModule.getNearestData('produtos', 'descricao', search);
+        res = await DmModule.sqlQuery(
+            'select * from produtos where descricao like  "%' +
+                search +
+                '%" and idcategoria="' +
+                filtrocategoria +
+                '" order by descricao limit 100');
       }
     }
 

@@ -282,9 +282,10 @@ class _ClienteEditState extends State<ClienteEdit> {
 
 class BotaoBar extends StatelessWidget {
   const BotaoBar({
+    Key? key,
     required this.iconeBotao,
     required this.caption,
-  });
+  }) : super(key: key);
   final String caption;
   final IconData iconeBotao;
 
@@ -325,7 +326,7 @@ class BotaoBar extends StatelessWidget {
             _cliente.id = textControllers._edCpfCnpj.value.text;
 
             ClientesProvider.addReplaceCliente(_cliente);
-            Navigator.of(context).pop();
+            Navigator.of(context).pop(_cliente);
           }
         });
   }

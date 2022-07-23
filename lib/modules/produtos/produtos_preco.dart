@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+
 import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
@@ -18,6 +18,7 @@ class ProdutosPreco extends StatelessWidget {
   Widget build(BuildContext context) {
     final TextEditingController _edSearchProduto = TextEditingController();
     final FocusNode _focusProduto = FocusNode();
+    // final BuildContext startcontext = context;
 
     AppStore ctrlApp = Get.find<AppStore>();
     return SafeArea(
@@ -84,9 +85,12 @@ class ProdutosPreco extends StatelessWidget {
                         Funcoes.escanearCodigoBarras().then((barras) {
                           if (barras == '-1') {
                             _edSearchProduto.clear;
+                            ctrlApp.searchBar.value = '';
                             showMessage('Leitura cancelada', context);
                           } else {
+                            Funcoes.customBeep(true);
                             _edSearchProduto.text = barras;
+                            ctrlApp.searchBar.value = barras;
                           }
                         });
                       },
@@ -102,6 +106,7 @@ class ProdutosPreco extends StatelessWidget {
                     suffixIcon: GestureDetector(
                       onTap: () {
                         _edSearchProduto.clear();
+                        ctrlApp.searchBar.value = '';
                         FocusScope.of(context).isFirstFocus;
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
@@ -124,10 +129,9 @@ class ProdutosPreco extends StatelessWidget {
                     // FocusManager.instance.primaryFocus.unfocus();
                     // SystemChannels.textInput.invokeMethod('TextInput.hide');
                   },
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp("[0-9]")),
-                    UpperCaseTextFormatter(),
-                  ],
+                  // inputFormatters: [
+                  // FilteringTextInputFormatter.allow(RegExp("[0-9]")),
+                  // ],
                 )),
           ),
           const SizedBox(height: 10),
@@ -141,10 +145,16 @@ class ProdutosPreco extends StatelessWidget {
                     List<Produto> lstProduto = snapshot.data;
                     if (lstProduto.isEmpty) {
                       // || snapshot.data.lenght == 0
-                      // _edSearchProduto.clear();
-                      return const Center(
-                        child: Text('Nenhum registro encontrado!'),
-                      );
+                      if (_edSearchProduto.text != '') {
+                        Funcoes.customBeep(true);
+                        return const Center(
+                          child: Text('Produto  não encontrado'),
+                        );
+                      } else {
+                        return const Center(
+                          child: Text('Pesquise pelo códido de barras'),
+                        );
+                      }
                     } else {
                       return ListView.builder(
                         itemCount: lstProduto.length,

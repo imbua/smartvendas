@@ -1,6 +1,7 @@
 import 'package:expansion_tile_card/expansion_tile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:jiffy/jiffy.dart';
@@ -20,69 +21,83 @@ import 'package:smartvendas/shared/variaveis.dart';
 class FuncoesTela {
   static int _n = 0;
 
-  static void doUpdateProduto(
-    List<Produto> produto,
-    int index,
-  ) async {
-    await DmModule.updTable('update produtos set qte=' +
-        FuncoesTela._n.toString() +
-        ' where id="' +
-        produto[index].id +
-        '"');
-  }
-
-  static void doUpdateProdutoEdit(Produto produto) async {
-    String _str = 'preco';
-    if (produto.qteminatacado > 0) {
-      if (produto.qte >= produto.qteminatacado) {
-        _str = 'atacado';
-      }
-    }
-
+  static void setTotal(String campo) async {
     ctrlApp.totalGeralProdutos.value =
-        await DmModule.getTotal('produtos', 'qte*$_str');
+        await DmModule.getTotal('produtos', 'qte*$campo');
 
     ctrlApp.totalGeralProdutosFmt.value =
         formatter.format(ctrlApp.totalGeralProdutos.value);
     // produto.qte = _n;
   }
 
-  static void minus(List<Produto> produto, int index) {
+  static void doUpdateProduto(produto) async {
+    var _str = '';
+    await DmModule.updTable('update produtos set qte=' +
+        FuncoesTela._n.toString() +
+        ' where id="' +
+        produto.id +
+        '"');
+    _str = getFieldValor(produto);
+    setTotal(_str);
+  }
+
+  static void doExcluiItem(Produto produto) async {
+    var _str = '';
+    await DmModule.updTable('update produtos set qte=0'
+            ' where id="' +
+        produto.id +
+        '"');
+    _str = getFieldValor(produto);
+    setTotal(_str);
+  }
+
+  static String getFieldValor(Produto produto) {
+    String _str = 'preco';
+    if (produto.qteminatacado > 0) {
+      if (produto.qte >= produto.qteminatacado) {
+        _str = 'atacado';
+      }
+    }
+    return _str;
+    // produto.qte = _n;
+  }
+
+  void minus(List<Produto> produto, int index) {
     if (FuncoesTela._n > 0) {
       FuncoesTela._n = produto[index].qte - 1;
-      doUpdateProduto(produto, index);
+      doUpdateProduto(produto[index]);
     }
   }
 
-  static void minusEdit(Produto produto) {
+  static minusEdit(Produto produto) {
     if (produto.id.isNotEmpty) {
       if (produto.qte > 0) {
         produto.qte = produto.qte - 1;
-        doUpdateProdutoEdit(produto);
+        doUpdateProduto(produto);
       }
     }
   }
 
-  static void add(List<Produto> produto, int index) {
+  void add(List<Produto> produto, int index) {
     FuncoesTela._n = produto[index].qte + 1;
-    doUpdateProduto(produto, index);
+    doUpdateProduto(produto[index]);
   }
 
-  static void addEdit(Produto produto) {
+  static addEdit(Produto produto) {
     if (produto.id.isNotEmpty) {
       produto.qte = produto.qte + 1;
-      doUpdateProdutoEdit(produto);
+      doUpdateProduto(produto);
     }
   }
 
-  static void updateField(List<Produto> produto, int index, String qte) {
+  void updateField(List<Produto> produto, int index, String qte) {
     FuncoesTela._n = Funcoes.strToInt(qte);
-    doUpdateProduto(produto, index);
+    doUpdateProduto(produto[index]);
   }
 
-  static void updateFieldEdit(Produto produto, String qte) {
+  static updateFieldEdit(Produto produto, String qte) {
     FuncoesTela._n = Funcoes.strToInt(qte);
-    doUpdateProdutoEdit(produto);
+    doUpdateProduto(produto);
   }
 
   // static Future<List<Produto>> loadBuilder(bool isconta) {
@@ -93,7 +108,7 @@ class FuncoesTela {
   static Future<List<Produto>> loadBuilder(bool isconta) {
     return isconta
         ? ProdutosProvider.loadProdutosConta()
-        : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
+        : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value, '');
   }
 }
 
@@ -139,6 +154,25 @@ class _DAVControlState extends State<DAVControl> {
   final TextEditingController _edSearchNome = TextEditingController();
   final TextEditingController _edQte = TextEditingController();
   final FocusNode _focusProduto = FocusNode();
+
+  void submitData(String value) async {
+    if (value.length > 7) {
+      lstProdutoList = await ProdutosProvider.loadProdutosBarras(value);
+      lstProduto = Produto.clear();
+      if (lstProdutoList.isNotEmpty) {
+        lstProdutoList[0].qte = 1;
+        lstProduto = lstProdutoList[0];
+      } else {
+        Funcoes.customBeep(true);
+        showMessage('Registro não encontrado', context);
+        FocusScope.of(context).requestFocus(_focusProduto);
+      }
+      setState(() {});
+    } else {
+      FocusScope.of(context).requestFocus(_focusProduto);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -186,29 +220,29 @@ class _DAVControlState extends State<DAVControl> {
                   )),
               const Spacer(),
               OutlinedButton.icon(
-                  label: const Text(
-                    'Conta',
-                    style: TextStyle(
-                        color: Colors.white70,
-                        fontFamily: "RobotoCondensed",
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    shape: const StadiumBorder(),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    side: const BorderSide(width: 1, color: Colors.black87),
-                  ),
-                  icon: const Icon(Icons.shopping_cart, color: Colors.black54),
-                  onPressed: () async {
-                    // if (widget.ctrlApp.totalGeralProdutos.value > 0) {
-                    // await Navigator.of(context).pushNamed(AppRoutes.pedidoConta,
-                    // arguments: widget.lstCliente);
+                label: const Text(
+                  'Conta',
+                  style: TextStyle(
+                      color: Colors.white70,
+                      fontFamily: "RobotoCondensed",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: const BorderSide(width: 1, color: Colors.black87),
+                ),
+                icon: const Icon(Icons.shopping_cart, color: Colors.black54),
+                onPressed: () async {
+                  if (widget.ctrlApp.totalGeralProdutos.value > 0) {
+                    await Navigator.of(context).pushNamed(AppRoutes.pedidoConta,
+                        arguments: PedidoArguments(widget.lstCliente, 'dav'));
                   }
-                  // setState(() {});
-                  // },
-                  ),
+                  setState(() {});
+                },
+              ),
               const SizedBox(
                 width: 10,
               ),
@@ -220,7 +254,7 @@ class _DAVControlState extends State<DAVControl> {
             children: [
               const HeaderInput(
                 iconeMain: Icons.local_shipping,
-                titulo: 'Pedido',
+                titulo: 'DAV',
                 altura: 70,
               ),
               Padding(
@@ -271,9 +305,14 @@ class _DAVControlState extends State<DAVControl> {
                         Funcoes.escanearCodigoBarras().then((barras) {
                           if (barras == '-1') {
                             _edSearchNome.clear;
+                            ctrlApp.searchBar.value = '';
+
                             showMessage('Leitura cancelada', context);
                           } else {
+                            Funcoes.customBeep(true);
                             _edSearchNome.text = barras;
+                            ctrlApp.searchBar.value = barras;
+                            submitData(barras);
                           }
                         });
                       },
@@ -289,6 +328,7 @@ class _DAVControlState extends State<DAVControl> {
                     suffixIcon: GestureDetector(
                       onTap: () {
                         _edSearchNome.clear();
+                        ctrlApp.searchBar.value = '';
                         // FocusScope.of(context).unfocus();
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
@@ -296,21 +336,7 @@ class _DAVControlState extends State<DAVControl> {
                     ),
                   ),
                   onSubmitted: (value) async {
-                    if (value.length > 7) {
-                      lstProdutoList =
-                          await ProdutosProvider.loadProdutosBarras(value);
-                      lstProduto = Produto.clear();
-                      if (lstProdutoList.isNotEmpty) {
-                        lstProdutoList[0].qte = 1;
-                        lstProduto = lstProdutoList[0];
-                      } else {
-                        showMessage('Registro não encontrado', context);
-                        FocusScope.of(context).requestFocus(_focusProduto);
-                      }
-                      setState(() {});
-                    } else {
-                      FocusScope.of(context).requestFocus(_focusProduto);
-                    }
+                    submitData(value);
                   },
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp("[0-9]")),
@@ -319,7 +345,7 @@ class _DAVControlState extends State<DAVControl> {
                 )),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(1.0),
             child: lstProduto.id.isEmpty
                 ? const SizedBox(
                     height: 1,
@@ -435,7 +461,7 @@ class _DAVControlState extends State<DAVControl> {
                                 if (lstProduto.id.isNotEmpty) {
                                   FuncoesTela._n = lstProduto.qte;
                                   FuncoesTela.doUpdateProduto(
-                                      lstProdutoList, 0);
+                                      lstProdutoList[0]);
                                   setState(() {
                                     lstProduto = Produto.clear();
                                     _edSearchNome.clear();
@@ -509,75 +535,106 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
   SizedBox customExpationTileCard(List<Produto> lstProduto, int index) {
     return SizedBox(
       // leading:
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 3, left: 10, right: 10),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(3),
-              topRight: Radius.circular(3),
-              bottomLeft: Radius.circular(3),
-              bottomRight: Radius.circular(3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.5),
-              spreadRadius: 5,
-              blurRadius: 7,
-              offset: Offset(0, 3), // changes position of shadow
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.only(bottom: 3),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(
-                        bottom: 3, left: 8, top: 3, right: 8),
-                    child: Text(
-                      lstProduto[index].descricao,
-                      style: const TextStyle(color: corText, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+      child: Slidable(
+        key: Key(lstProduto[index].id),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 3, left: 10, right: 10),
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(3),
+                topRight: Radius.circular(3),
+                bottomLeft: Radius.circular(3),
+                bottomRight: Radius.circular(3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 5,
+                blurRadius: 7,
+                offset: const Offset(0, 3), // changes position of shadow
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.only(bottom: 3),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                          bottom: 3, left: 8, top: 3, right: 8),
+                      child: Text(
+                        lstProduto[index].descricao,
+                        style: const TextStyle(color: corText, fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            Padding(
-              padding:
-                  const EdgeInsets.only(bottom: 3, left: 8, top: 3, right: 8),
-              child: Row(
-                children: [
-                  Text(
-                    'Barras: ' + lstProduto[index].barras,
-                    style: const TextStyle(
-                        color: corText,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11),
-                  ),
-                  const SizedBox(
-                    width: 40,
-                  ),
-                  Text(
-                      lstProduto[index].qte.toString() +
-                          lstProduto[index].unidade +
-                          ' X R\$' +
-                          formatter.format(
-                              Funcoes.getValorProduto(lstProduto[index])) +
-                          ' = ' +
-                          formatter.format(lstProduto[index].qte *
-                              Funcoes.getValorProduto(lstProduto[index])),
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: corText,
-                          fontWeight: FontWeight.bold))
                 ],
               ),
+              Padding(
+                padding:
+                    const EdgeInsets.only(bottom: 3, left: 8, top: 3, right: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      'Barras: ' + lstProduto[index].barras,
+                      style: const TextStyle(
+                          color: corText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11),
+                    ),
+                    const SizedBox(
+                      width: 40,
+                    ),
+                    Text(
+                        lstProduto[index].qte.toString() +
+                            lstProduto[index].unidade +
+                            ' X R\$' +
+                            formatter.format(
+                                Funcoes.getValorProduto(lstProduto[index])) +
+                            ' = ' +
+                            formatter.format(lstProduto[index].qte *
+                                Funcoes.getValorProduto(lstProduto[index])),
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: corText,
+                            fontWeight: FontWeight.bold))
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        startActionPane: ActionPane(
+          // A motion is a widget used to control how the pane animates.
+          motion: const ScrollMotion(),
+
+          // A pane can dismiss the Slidable.
+          dismissible: DismissiblePane(
+            onDismissed: (() async {
+              String _id = lstProduto[index].id.toString();
+              await DmModule.deletaPedido(_id);
+            }),
+          ),
+
+          // All actions are defined in the children parameter.
+          children: [
+            // A SlidableAction can have an icon and/or a label.
+
+            SlidableAction(
+              onPressed: ((context) async {
+                // String _id = lstProduto[index].id.toString();
+                FuncoesTela.doExcluiItem(lstProduto[index]);
+              }),
+              backgroundColor: const Color(0xFFFE4A49),
+              foregroundColor: Colors.white,
+              icon: Icons.delete,
+              label: 'Excluir',
             ),
           ],
         ),

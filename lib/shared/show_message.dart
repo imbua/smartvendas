@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 void showMessage(String msg, BuildContext ctx) {
   SnackBar snackBar = SnackBar(
     content: Text(msg),
-    duration: Duration(seconds: 2),
+    duration: const Duration(seconds: 2),
     // action: SnackBarAction(
     // label: 'Undo',
     // onPressed: () {

@@ -80,7 +80,7 @@ class _SincroWidgetState extends State<SincroWidget> {
                     ProgressDialog(context: context);
                 try {
                   prProgress.show(
-                      max: 2,
+                      max: 1,
                       msgFontSize: 12,
                       msg: 'Conectando ao servidor...');
 
@@ -89,6 +89,8 @@ class _SincroWidgetState extends State<SincroWidget> {
 
                   await DmModule.totalCounts();
                   prProgress.close();
+                  Navigator.of(context).pop();
+
                   msg.showSnackBar(
                     const SnackBar(
                       content: Text('Processo concluido!'),

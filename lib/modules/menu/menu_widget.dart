@@ -182,7 +182,7 @@ class MenuWidget extends StatelessWidget {
                             MenuItem(
                               img: 'images/sincro.png',
                               header: 'Sincronizar',
-                              botton: 'Enviar e atualizar a base',
+                              botton: 'pedidos e carga',
                               onPress: () {
                                 Navigator.of(context)
                                     .pushNamed(AppRoutes.sincro);

@@ -68,6 +68,7 @@ class _LoginPageState extends State<LoginPage>
                   child: SizedBox(
                     width: double.infinity,
                     child: loginFrame(
+                        loginPageContext: context,
                         usuarioController: loginUsuarioController,
                         senhaController: loginSenhaController),
                   ),

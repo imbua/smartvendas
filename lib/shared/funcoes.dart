@@ -4,6 +4,7 @@ import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 
 import 'package:flutter/services.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
+import 'package:smartvendas/shared/variaveis.dart';
 
 class LowerCaseTextFormatter extends TextInputFormatter {
   @override
@@ -22,6 +23,31 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class Funcoes {
+  static Future<int> loadSound() async {
+    asset = await rootBundle.load("assets/sounds/barras.mp3");
+    return await soundpool.load(asset!);
+  }
+
+  static Future<int> loadErrorSound() async {
+    assetError = await rootBundle.load("assets/sounds/error.mp3");
+    return await soundpool.load(assetError!);
+  }
+
+  static void loadPool() {
+    soundId = loadSound();
+    soundErrorId = loadErrorSound();
+  }
+
+  static Future<void> customBeep(bool isError) async {
+    var _alarmSound = -1;
+    if (isError) {
+      _alarmSound = await soundId;
+    } else {
+      _alarmSound = await soundErrorId;
+    }
+    await soundpool.play(_alarmSound);
+  }
+
   static double getValorProduto(Produto produto) {
     if (produto.qteminatacado > 0 &&
         produto.atacado > 0 &&
@@ -33,9 +59,13 @@ class Funcoes {
   }
 
   static bool isNumber(String string) {
-    final numericRegex = RegExp(r'^-?(([0-9]*)|(([0-9]*)\.([0-9]*)))$');
+    if (string.isEmpty) {
+      return false;
+    } else {
+      final numericRegex = RegExp(r'^-?(([0-9]*)|(([0-9]*)\.([0-9]*)))$');
 
-    return numericRegex.hasMatch(string);
+      return numericRegex.hasMatch(string);
+    }
   }
 
   static int strToInt(var value) {
