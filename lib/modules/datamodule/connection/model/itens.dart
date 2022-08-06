@@ -6,7 +6,7 @@ class Item {
   String idproduto = '';
   String descricao = '';
   String unidade = '';
-  int qtde = 0;
+  double qtde = 0;
   int qteminatacado = 0;
   double valor = 0.00;
   double atacado = 0.00;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_beep/flutter_beep.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 
@@ -80,30 +81,8 @@ class ProdutosPreco extends StatelessWidget {
                     hintText: 'Localizar produto (barras)',
                     hintStyle:
                         const TextStyle(fontSize: 14, color: Colors.black),
-                    prefix: GestureDetector(
-                      onTap: () {
-                        Funcoes.escanearCodigoBarras().then((barras) {
-                          if (barras == '-1') {
-                            _edSearchProduto.clear;
-                            ctrlApp.searchBar.value = '';
-                            showMessage('Leitura cancelada', context);
-                          } else {
-                            Funcoes.customBeep(true);
-                            _edSearchProduto.text = barras;
-                            ctrlApp.searchBar.value = barras;
-                          }
-                        });
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(
-                          FontAwesomeIcons.barcode,
-                          color: corText,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                    suffixIcon: GestureDetector(
+
+                    suffix: GestureDetector(
                       onTap: () {
                         _edSearchProduto.clear();
                         ctrlApp.searchBar.value = '';
@@ -146,7 +125,7 @@ class ProdutosPreco extends StatelessWidget {
                     if (lstProduto.isEmpty) {
                       // || snapshot.data.lenght == 0
                       if (_edSearchProduto.text != '') {
-                        Funcoes.customBeep(true);
+                        FlutterBeep.beep();
                         return const Center(
                           child: Text('Produto  não encontrado'),
                         );
@@ -222,6 +201,30 @@ class ProdutosPreco extends StatelessWidget {
                     // return const Center(child: CircularProgressIndicator());
                   }),
             )),
+          ),
+          Expanded(
+            child: IconButton(
+              onPressed: () {
+                Funcoes.escanearCodigoBarras().then((barras) {
+                  if (barras == '-1') {
+                    _edSearchProduto.clear;
+                    ctrlApp.searchBar.value = '';
+                    showMessage('Leitura cancelada', context);
+                  } else {
+                    FlutterBeep.beep(false);
+                    _edSearchProduto.text = barras;
+                    ctrlApp.searchBar.value = barras;
+                  }
+                });
+              },
+              icon: const Icon(
+                FontAwesomeIcons.barcode,
+                color: corText,
+                size: 50,
+              ),
+              iconSize: 50,
+              color: Colors.white,
+            ),
           ),
         ]),
       ),

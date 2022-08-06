@@ -14,6 +14,7 @@ import 'package:smartvendas/modules/pedidos/representantes/pedido_produto.dart';
 import 'package:smartvendas/modules/produtos/produtos_list.dart';
 import 'package:smartvendas/modules/config/sincro_widget.dart';
 import 'package:smartvendas/modules/produtos/produtos_preco.dart';
+import 'package:smartvendas/modules/produtos/produtos_search.dart';
 import 'modules/clientes/clientes_list.dart';
 import 'modules/config/config_widget.dart';
 import 'modules/login/login_page.dart';
@@ -79,6 +80,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.clientesSelecionar: (ctx) => const ClienteSelecionar(),
         AppRoutes.produtoList: (ctx) => const ProdutosList(),
         AppRoutes.produtoPreco: (ctx) => const ProdutosPreco(),
+        AppRoutes.produtoSearch: (ctx) => const ProdutoSearch(),
         AppRoutes.pedidoProduto: (ctx) => const PedidoProduto(),
         AppRoutes.pedidoConta: (ctx) => const PedidoConta(),
         AppRoutes.pedidoAlterar: (ctx) => const PedidoAlterar(),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
-import 'package:soundpool/soundpool.dart';
 
 class PedidoArguments {
   final Cliente lstCliente;
@@ -10,14 +8,6 @@ class PedidoArguments {
 
   PedidoArguments(this.lstCliente, this.origem);
 }
-
-late Future<int> soundId;
-late Future<int> soundErrorId;
-final Soundpool? pool =
-    Soundpool.fromOptions(options: const SoundpoolOptions());
-Soundpool get soundpool => pool!;
-ByteData? asset;
-ByteData? assetError;
 
 final formatter =
     NumberFormat.currency(locale: "pt_Br", symbol: '', decimalDigits: 2);

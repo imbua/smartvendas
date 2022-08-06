@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/cep.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/clientes_provider.dart';
 import 'package:smartvendas/shared/funcoes.dart';
@@ -9,17 +11,30 @@ import 'package:smartvendas/shared/header_main.dart';
 import 'package:smartvendas/shared/show_message.dart';
 import 'package:smartvendas/shared/variaveis.dart';
 import 'package:http/http.dart' as http;
+import 'package:brasil_fields/brasil_fields.dart';
 
-class TextControllers extends GetxController {
-  final Rx<TextEditingController> _edCpfCnpj = TextEditingController().obs;
-  final Rx<TextEditingController> _edNome = TextEditingController().obs;
-  final Rx<TextEditingController> _edFantasia = TextEditingController().obs;
-  final Rx<TextEditingController> _edBairro = TextEditingController().obs;
-  final Rx<TextEditingController> _edUf = TextEditingController().obs;
-  final Rx<TextEditingController> _edEndereco = TextEditingController().obs;
-  final Rx<TextEditingController> _edCep = TextEditingController().obs;
-  final Rx<TextEditingController> _edFone = TextEditingController().obs;
-  final Rx<TextEditingController> _edCidade = TextEditingController().obs;
+class TextControllers {
+  final TextEditingController _edCpfCnpj = TextEditingController();
+  final TextEditingController _edNome = TextEditingController();
+  final TextEditingController _edFantasia = TextEditingController();
+  final TextEditingController _edBairro = TextEditingController();
+  final TextEditingController _edUf = TextEditingController();
+  final TextEditingController _edEndereco = TextEditingController();
+  final TextEditingController _edCep = TextEditingController();
+  final TextEditingController _edFone = TextEditingController();
+  final TextEditingController _edCidade = TextEditingController();
+
+  static void clearVars() {
+    textControllers._edCpfCnpj.clear();
+    textControllers._edNome.clear();
+    textControllers._edFantasia.clear();
+    textControllers._edBairro.clear();
+    textControllers._edUf.clear();
+    textControllers._edEndereco.clear();
+    textControllers._edCep.clear();
+    textControllers._edFone.clear();
+    textControllers._edCidade.clear();
+  }
 }
 
 final TextControllers textControllers = Get.put(TextControllers());
@@ -54,14 +69,14 @@ class _ClienteEditState extends State<ClienteEdit> {
           var parsedJson = json.decode(data);
 
           // textControllers._edCpfCnpj.value = parsedJson['cnpj'];
-          textControllers._edNome.value.text = parsedJson['nome'];
-          textControllers._edFantasia.value.text = parsedJson['fantasia'];
-          textControllers._edBairro.value.text = parsedJson['bairro'];
-          textControllers._edUf.value.text = parsedJson['uf'];
-          textControllers._edEndereco.value.text = parsedJson['logradouro'];
-          textControllers._edCep.value.text = parsedJson['cep'];
-          textControllers._edFone.value.text = parsedJson['telefone'];
-          textControllers._edCidade.value.text = parsedJson['municipio'];
+          textControllers._edNome.text = parsedJson['nome'];
+          textControllers._edFantasia.text = parsedJson['fantasia'];
+          textControllers._edBairro.text = parsedJson['bairro'];
+          textControllers._edUf.text = parsedJson['uf'];
+          textControllers._edEndereco.text = parsedJson['logradouro'];
+          textControllers._edCep.text = parsedJson['cep'];
+          textControllers._edFone.text = parsedJson['telefone'];
+          textControllers._edCidade.text = parsedJson['municipio'];
           okBool = true;
         }
       }
@@ -72,15 +87,22 @@ class _ClienteEditState extends State<ClienteEdit> {
   }
 
   void fetchVars(Cliente cliente) {
-    textControllers._edCpfCnpj.value.text = cliente.id;
-    textControllers._edNome.value.text = cliente.nome;
-    textControllers._edFantasia.value.text = cliente.fantasia;
-    textControllers._edBairro.value.text = cliente.bairro;
-    textControllers._edUf.value.text = cliente.uf;
-    textControllers._edEndereco.value.text = cliente.endereco;
-    textControllers._edCep.value.text = cliente.cep;
-    textControllers._edFone.value.text = cliente.telefone;
-    textControllers._edCidade.value.text = cliente.municipio;
+    textControllers._edCpfCnpj.text = cliente.id;
+    textControllers._edNome.text = cliente.nome;
+    textControllers._edFantasia.text = cliente.fantasia;
+    textControllers._edBairro.text = cliente.bairro;
+    textControllers._edUf.text = cliente.uf;
+    textControllers._edEndereco.text = cliente.endereco;
+    textControllers._edCep.text = cliente.cep;
+    textControllers._edFone.text = cliente.telefone;
+    textControllers._edCidade.text = cliente.municipio;
+  }
+
+  void fetchVarsLocal(ResultCep cep) {
+    textControllers._edBairro.text = cep.bairro!;
+    textControllers._edUf.text = cep.uf!;
+    textControllers._edEndereco.text = cep.logradouro!;
+    textControllers._edCidade.text = cep.localidade!;
   }
 
   @override
@@ -89,6 +111,8 @@ class _ClienteEditState extends State<ClienteEdit> {
       final List<Cliente> lstCliente =
           ModalRoute.of(context)!.settings.arguments as List<Cliente>;
       fetchVars(lstCliente[0]);
+    } else {
+      TextControllers.clearVars();
     }
     return Scaffold(
       body: SingleChildScrollView(
@@ -124,36 +148,61 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                    edController: textControllers._edCpfCnpj.value,
+                    edController: textControllers._edCpfCnpj,
                     edFocusNode: _edFocusCpfCnpj,
                     caption: 'CPF ou CNPJ',
+                    showClear: true,
                     textInputType:
                         const TextInputType.numberWithOptions(decimal: false),
                   ),
                   const SizedBox(width: 15),
-                  Expanded(
-                    child: IconButton(
-                      tooltip: 'Consultar CNPJ na Receita',
-                      icon: const Icon(
-                        Icons.search,
-                        color: Colors.grey,
-                        size: 30,
-                      ),
-                      onPressed: () async {
-                        String _cnpj = textControllers._edCpfCnpj.value.text
-                            .replaceAll(RegExp(r'[^0-9 ]'), "");
-                        if (_cnpj.length != 14) {
-                          showMessage(
-                              'Erro no preenchimento do CNPJ!', context);
-                        } else {
-                          await consultaCnpj().then((ok) {
-                            if (!ok) {
-                              showMessage('Cnpj não encontrado!', context);
-                            }
-                          });
-                        }
-                      },
+                  IconButton(
+                    tooltip: 'Consultar CNPJ na Receita',
+                    icon: const Icon(
+                      Icons.search,
+                      color: Colors.grey,
+                      size: 30,
                     ),
+                    onPressed: () async {
+                      String _cnpj = textControllers._edCpfCnpj.text
+                          .replaceAll(RegExp(r'[^0-9 ]'), "");
+                      TextControllers.clearVars();
+
+                      if (_cnpj.length != 11 && _cnpj.length != 14) {
+                        showMessage(
+                            'Erro no preenchimento do CPF / CNPJ!', context);
+                        return;
+                      }
+
+                      List<Cliente> lstCliente =
+                          await ClientesProvider.loadClientes(_cnpj);
+                      if (lstCliente.isNotEmpty) {
+                        fetchVars(lstCliente[0]);
+                      } else {
+                        if (_cnpj.length == 11 || _cnpj.length == 14) {
+                          if (_cnpj.length == 11 &&
+                              !CPFValidator.isValid(_cnpj)) {
+                            showMessage(
+                                'Erro no preenchimento do CPF!', context);
+                          } else {
+                            if (_cnpj.length == 14 &&
+                                !CNPJValidator.isValid(_cnpj)) {
+                              showMessage(
+                                  'Erro no preenchimento do CNPJ!', context);
+                            } else {
+                              if (_cnpj.length == 14) {
+                                await consultaCnpj().then((ok) {
+                                  if (!ok) {
+                                    showMessage(
+                                        'Cnpj não encontrado!', context);
+                                  }
+                                });
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                   ),
                 ]),
           ),
@@ -164,7 +213,7 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                      edController: textControllers._edNome.value,
+                      edController: textControllers._edNome,
                       edFocusNode: _edFocusNome,
                       caption: 'Nome'),
                 ]),
@@ -176,7 +225,7 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                      edController: textControllers._edFantasia.value,
+                      edController: textControllers._edFantasia,
                       edFocusNode: _edFocusFantasia,
                       caption: 'Fantasia'),
                 ]),
@@ -188,7 +237,7 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                      edController: textControllers._edEndereco.value,
+                      edController: textControllers._edEndereco,
                       edFocusNode: _edFocusEndereco,
                       caption: 'Endereco'),
                 ]),
@@ -200,7 +249,7 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                      edController: textControllers._edBairro.value,
+                      edController: textControllers._edBairro,
                       edFocusNode: _edFocusBairro,
                       caption: 'Bairro'),
                 ]),
@@ -212,19 +261,45 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                    edController: textControllers._edCep.value,
+                    edController: textControllers._edCep,
                     edFocusNode: _edFocusCep,
                     caption: 'CEP',
+                    textFlex: 2,
                     textInputType: TextInputType.number,
                   ),
-                  const SizedBox(width: 35),
-                  Expanded(
-                    child: TextEditCustom(
-                      caption: 'Telefone',
-                      edController: textControllers._edFone.value,
-                      edFocusNode: _edFocusFone,
-                      textInputType: TextInputType.phone,
+                  IconButton(
+                    tooltip: 'Consultar Cep',
+                    icon: const Icon(
+                      Icons.search,
+                      color: Colors.grey,
+                      size: 30,
                     ),
+                    onPressed: () async {
+                      String _cep = textControllers._edCep.text
+                          .replaceAll(RegExp(r'[^0-9 ]'), "");
+                      // clearVars();
+                      textControllers._edCep.text = _cep;
+                      if (_cep.length != 8) {
+                        showMessage('Erro no preenchimento do CEP!', context);
+                        return;
+                      }
+
+                      final resultCep = await ViaCepService.fetchCep(cep: _cep);
+
+                      if (resultCep.localidade != null) {
+                        fetchVarsLocal(resultCep);
+                      } else {
+                        showMessage('Cep não encontrado!', context);
+                        return;
+                      }
+                    },
+                  ),
+                  TextEditCustom(
+                    caption: 'Telefone',
+                    edController: textControllers._edFone,
+                    edFocusNode: _edFocusFone,
+                    textFlex: 3,
+                    textInputType: TextInputType.phone,
                   ),
                 ]),
           ),
@@ -235,13 +310,13 @@ class _ClienteEditState extends State<ClienteEdit> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   TextEditCustom(
-                      edController: textControllers._edCidade.value,
+                      edController: textControllers._edCidade,
                       edFocusNode: _edFocusCidade,
                       caption: 'Municipio',
                       textFlex: 3),
                   const SizedBox(width: 15),
                   TextEditCustom(
-                      edController: textControllers._edUf.value,
+                      edController: textControllers._edUf,
                       edFocusNode: _edFocusUf,
                       caption: 'UF',
                       textFlex: 1),
@@ -268,6 +343,10 @@ class _ClienteEditState extends State<ClienteEdit> {
                     BotaoBar(
                       iconeBotao: Icons.close,
                       caption: 'Fechar',
+                    ),
+                    BotaoBar(
+                      iconeBotao: Icons.clear_all,
+                      caption: 'Limpar',
                     ),
                   ],
                 ),
@@ -306,7 +385,9 @@ class BotaoBar extends StatelessWidget {
           ],
         ),
         onPressed: () async {
-          if (caption == 'Fechar') {
+          if (caption == 'Limpar') {
+            TextControllers.clearVars();
+          } else if (caption == 'Fechar') {
             Navigator.of(context).pop();
           } else if (caption == 'Gravar') {
             var _cliente = Cliente(
@@ -339,13 +420,15 @@ class TextEditCustom extends StatelessWidget {
   final FocusNode edFocusNode;
   final String caption;
   final int textFlex;
+  final bool? showClear;
   const TextEditCustom(
       {Key? key,
       required this.caption,
       this.textInputType = TextInputType.text,
-      this.textFlex = 3,
+      this.textFlex = 1,
       required this.edController,
-      required this.edFocusNode})
+      required this.edFocusNode,
+      this.showClear = false})
       : super(key: key);
 
   @override
@@ -368,6 +451,17 @@ class TextEditCustom extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             labelText: caption,
+            suffixIcon: showClear == false
+                ? null
+                : GestureDetector(
+                    onTap: () {
+                      edController.clear();
+                      // ctrlApp.searchBar.value = '';
+                      FocusScope.of(context).unfocus();
+                    },
+                    child: const Icon(FontAwesomeIcons.eraser,
+                        color: corText, size: 20),
+                  ),
           ),
           keyboardType: textInputType,
           textInputAction: TextInputAction.next,

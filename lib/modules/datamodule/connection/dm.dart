@@ -1,10 +1,29 @@
+import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
 import 'package:sqflite/sqflite.dart' as sql;
 import 'package:path/path.dart' as path;
 
 class DmModule {
   // DmModule._privateConstructor();
   // static final DmModule instance = DmModule._privateConstructor();
+
+  static void setTabelas(AppStore ctrlApp) {
+    CategoriasProvider.loadCategorias('').then((list) {
+      ctrlApp.lstCategoria = [];
+      for (var item in list) {
+        ctrlApp.lstCategoria.add(item);
+      }
+    });
+
+    FormaPgtoProvider.loadFormaPgto('').then((list) {
+      ctrlApp.lstFormaPgto = [];
+      for (var item in list) {
+        ctrlApp.lstFormaPgto.add(item.descricao);
+      }
+    });
+  }
 
   static Future<sql.Database> database() async {
     final dbPath = await sql.getDatabasesPath();
@@ -21,7 +40,7 @@ class DmModule {
 
   static Future<void> _criarBanco(sql.Database db, int novaVersao) async {
     List<String> queryes = [
-      "CREATE TABLE IF NOT EXISTS produtos (id TEXT PRIMARY KEY, descricao TEXT, idcategoria TEXT, barras TEXT, unidade TEXT, preco  FLOAT, atacado  FLOAT,  qte INTEGER,  qteminatacado INTEGER, estoque INTEGER,imagem TEXT);",
+      "CREATE TABLE IF NOT EXISTS produtos (id TEXT PRIMARY KEY, descricao TEXT, idcategoria TEXT, barras TEXT, unidade TEXT, preco  FLOAT, atacado  FLOAT,  qte FLOAT,  qteminatacado INTEGER, estoque FLOAT,imagem TEXT);",
       "CREATE TABLE IF NOT EXISTS produtosimagem (id TEXT PRIMARY KEY, imagem TEXT);",
       "CREATE TABLE IF NOT EXISTS clientes (id TEXT PRIMARY KEY,nome  TEXT,fantasia  TEXT,endereco  TEXT,numero  TEXT,bairro  TEXT,cep  TEXT,telefone  TEXT,uf  TEXT,municipio  TEXT,latitude  TEXT,longitude  TEXT, alterado  INTEGER);",
       "CREATE TABLE IF NOT EXISTS categorias (id TEXT PRIMARY KEY, descricao TEXT);",

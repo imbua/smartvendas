@@ -152,14 +152,14 @@ class ClienteSelecionar extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           backgroundColor: corBotao,
           child: IconButton(
-            onPressed: () {
-              Navigator.of(context)
-                  .pushNamed(AppRoutes.clienteEdit)
-                  .then((value) {
-                if (value is Cliente) {
-                  _doChoice(context, _choice, value);
-                }
-              });
+            onPressed: () async {
+              var value = await Navigator.of(context)
+                  .pushNamed(AppRoutes.clienteEdit, arguments: null);
+              if (value is Cliente) {
+                // await PedidosProvider.resetProdutos();
+                ctrlApp.searchBar.value = value.id;
+                //   _doChoice(context, _choice, value);
+              }
             },
             icon: const Icon(Icons.people_alt),
             iconSize: 30,

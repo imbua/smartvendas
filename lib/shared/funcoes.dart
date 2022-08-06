@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 
 import 'package:flutter/services.dart';
+import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
-import 'package:smartvendas/shared/variaveis.dart';
 
 class LowerCaseTextFormatter extends TextInputFormatter {
   @override
@@ -23,29 +24,39 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class Funcoes {
-  static Future<int> loadSound() async {
-    asset = await rootBundle.load("assets/sounds/barras.mp3");
-    return await soundpool.load(asset!);
-  }
+  static ProgressDialog progressBar(
+      BuildContext context, double maximo, String msg) {
+    ProgressDialog prProgress = ProgressDialog(
+      context,
+      type: ProgressDialogType.download,
+      textDirection: TextDirection.ltr,
+      // isDismissible: true,
+      // customBody: Container(
+      //     padding: const EdgeInsets.all(8.0),
+      //     child: const CircularProgressIndicator()),
+    );
+    prProgress.style(
+//      message: 'Downloading file...',
+      // widgetAboveTheDialog: const Text('Progress'),
+      message: msg,
+      progressWidget: Container(
+        padding: const EdgeInsets.all(8.0),
+        child: const CircularProgressIndicator(),
+      ),
+      borderRadius: 10.0,
+      backgroundColor: Colors.white,
+      elevation: 10.0,
+      insetAnimCurve: Curves.easeInOut,
+      progress: 0.0,
+      progressWidgetAlignment: Alignment.center,
+      maxProgress: maximo,
+      progressTextStyle: const TextStyle(
+          color: Colors.black, fontSize: 13.0, fontWeight: FontWeight.w400),
+      messageTextStyle: const TextStyle(
+          color: Colors.black, fontSize: 19.0, fontWeight: FontWeight.w600),
+    );
 
-  static Future<int> loadErrorSound() async {
-    assetError = await rootBundle.load("assets/sounds/error.mp3");
-    return await soundpool.load(assetError!);
-  }
-
-  static void loadPool() {
-    soundId = loadSound();
-    soundErrorId = loadErrorSound();
-  }
-
-  static Future<void> customBeep(bool isError) async {
-    var _alarmSound = -1;
-    if (isError) {
-      _alarmSound = await soundId;
-    } else {
-      _alarmSound = await soundErrorId;
-    }
-    await soundpool.play(_alarmSound);
+    return prProgress;
   }
 
   static double getValorProduto(Produto produto) {

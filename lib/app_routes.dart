@@ -9,6 +9,7 @@ class AppRoutes {
   static const produtoList = '/produtolist';
   static const produtoPreco = '/produtopreco';
   static const pedidoProduto = '/pedidoproduto';
+  static const produtoSearch = '/produtosearch';
   static const pedidoConta = '/pedidoconta';
   static const pedidoAlterar = '/pedidoalterar';
   static const pedidoList = '/pedidolist';

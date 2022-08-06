@@ -135,6 +135,9 @@ class MenuWidget extends StatelessWidget {
                                   botton: ctrlApp.totalPedidos.toString() +
                                       ' pedidos',
                                   onPress: () {
+                                    ctrlApp.searchBar.value = '';
+
+                                    ctrlApp.searchBarWithCategoria.value = '';
                                     Navigator.of(context)
                                         .pushNamed(AppRoutes.pedidoList);
                                   });
@@ -144,6 +147,10 @@ class MenuWidget extends StatelessWidget {
                                 header: 'Novo pedido',
                                 botton: '', //'Registrar um novo pedido',
                                 onPress: () {
+                                  ctrlApp.searchBar.value = '';
+
+                                  ctrlApp.searchBarWithCategoria.value = '';
+
                                   Navigator.of(context).pushNamed(
                                       AppRoutes.clientesSelecionar,
                                       arguments: 'pedido');
@@ -159,6 +166,9 @@ class MenuWidget extends StatelessWidget {
                               header: 'DAV',
                               botton: '',
                               onPress: () {
+                                ctrlApp.searchBar.value = '';
+
+                                ctrlApp.searchBarWithCategoria.value = '';
                                 Navigator.of(context).pushNamed(
                                     AppRoutes.clientesSelecionar,
                                     arguments: 'dav');

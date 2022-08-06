@@ -1,7 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
 import 'package:smartvendas/shared/funcoes.dart';
-import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 import 'package:sqflite/sqflite.dart' as sql;
 
 class ProdutosProvider {
@@ -12,7 +12,7 @@ class ProdutosProvider {
     _items.clear();
     List<Map<String, dynamic>> res;
 
-    if (Funcoes.isNumber(search)) {
+    if ((filtrocategoria.isEmpty) && (Funcoes.isNumber(search))) {
       res = await DmModule.getNearestData('produtos', 'barras', search, false);
     } else {
       if (filtrocategoria.isEmpty) {
@@ -55,15 +55,20 @@ class ProdutosProvider {
   }
 
   static Future<void> setRawTable(
-      Iterable list, ProgressDialog prProgress) async {
+      Iterable list, BuildContext rawContext) async {
     // myDb.delCliente();
     final db = await DmModule.database();
     List<Produto> res;
     int i;
-
     await db.transaction((txn) async {
       res = list.map((list) => Produto.fromMap(list, false)).toList();
-      prProgress.show(max: res.length, msg: 'Atualizando produtos...');
+      if (res.isEmpty) {
+        return;
+      }
+      final pbProgress = Funcoes.progressBar(
+          rawContext, res.length.toDouble(), 'Realizando consulta ao db...');
+
+      await pbProgress.show();
 
       sql.Batch batch = txn.batch();
       i = 0;
@@ -88,12 +93,18 @@ class ProdutosProvider {
           conflictAlgorithm: sql.ConflictAlgorithm.replace,
         );
         if (i % 1000 == 0) {
-          prProgress.update(value: i, msg: 'Atualizando produtos...');
+          pbProgress.update(
+              progress: i.toDouble(),
+              progressWidget: Container(
+                  padding: const EdgeInsets.all(8.0),
+                  child: const CircularProgressIndicator()),
+              message: 'Atualizando produtos...');
           await batch.commit();
         }
       }
-      prProgress.update(value: i, msg: 'Atualizando produtos...');
-
+      if (pbProgress.isShowing()) {
+        await pbProgress.hide();
+      }
       await batch.commit();
     });
   }

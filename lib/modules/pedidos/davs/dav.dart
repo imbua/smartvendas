@@ -1,6 +1,7 @@
 import 'package:expansion_tile_card/expansion_tile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_beep/flutter_beep.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
@@ -19,7 +20,7 @@ import 'package:smartvendas/shared/show_message.dart';
 import 'package:smartvendas/shared/variaveis.dart';
 
 class FuncoesTela {
-  static int _n = 0;
+  static double _n = 0;
 
   static void setTotal(String campo) async {
     ctrlApp.totalGeralProdutos.value =
@@ -32,7 +33,7 @@ class FuncoesTela {
 
   static void doUpdateProduto(produto) async {
     var _str = '';
-    await DmModule.updTable('update produtos set qte=' +
+    await DmModule.updTable('update produtos set qte=qte+' +
         FuncoesTela._n.toString() +
         ' where id="' +
         produto.id +
@@ -65,7 +66,7 @@ class FuncoesTela {
   void minus(List<Produto> produto, int index) {
     if (FuncoesTela._n > 0) {
       FuncoesTela._n = produto[index].qte - 1;
-      doUpdateProduto(produto[index]);
+      // doUpdateProduto(produto[index]);
     }
   }
 
@@ -73,31 +74,39 @@ class FuncoesTela {
     if (produto.id.isNotEmpty) {
       if (produto.qte > 0) {
         produto.qte = produto.qte - 1;
-        doUpdateProduto(produto);
+        FuncoesTela._n = produto.qte;
+        // doUpdateProduto(produto);
       }
     }
   }
 
   void add(List<Produto> produto, int index) {
     FuncoesTela._n = produto[index].qte + 1;
-    doUpdateProduto(produto[index]);
+    produto[index].qte = FuncoesTela._n;
+    // doUpdateProduto(produto[index]);
   }
 
   static addEdit(Produto produto) {
     if (produto.id.isNotEmpty) {
       produto.qte = produto.qte + 1;
-      doUpdateProduto(produto);
+      FuncoesTela._n = produto.qte;
+      // doUpdateProduto(produto);
     }
   }
 
   void updateField(List<Produto> produto, int index, String qte) {
-    FuncoesTela._n = Funcoes.strToInt(qte);
-    doUpdateProduto(produto[index]);
+    FuncoesTela._n = Funcoes.strToFloat(qte);
+    produto[index].qte = FuncoesTela._n;
+
+    // FuncoesTela._n = Funcoes.strToFloat(qte);
+    // doUpdateProduto(produto[index]);
   }
 
   static updateFieldEdit(Produto produto, String qte) {
-    FuncoesTela._n = Funcoes.strToInt(qte);
-    doUpdateProduto(produto);
+    FuncoesTela._n = Funcoes.strToFloat(qte);
+    produto.qte = FuncoesTela._n;
+
+    // doUpdateProduto(produto);
   }
 
   // static Future<List<Produto>> loadBuilder(bool isconta) {
@@ -122,6 +131,7 @@ class DAV extends StatelessWidget {
         ModalRoute.of(context)!.settings.arguments as Cliente;
 
     AppStore ctrlApp = Get.find<AppStore>();
+    ctrlApp.searchBar.value = '';
     return WillPopScope(
       onWillPop: () {
         return Future.value(false); // if true allow back else block it
@@ -156,14 +166,33 @@ class _DAVControlState extends State<DAVControl> {
   final FocusNode _focusProduto = FocusNode();
 
   void submitData(String value) async {
-    if (value.length > 7) {
-      lstProdutoList = await ProdutosProvider.loadProdutosBarras(value);
+    double _qte = 1;
+    double _valor = 0;
+    String _produto = value;
+    String _str;
+    if (_produto.length > 7) {
+      _str = _produto.substring(7, _produto.length - 1);
+      // print(_str);
+      if (_produto.substring(0, 1) == '2') {
+        //e barras
+        _produto = _produto.substring(1, 7); //barras
+        _valor = Funcoes.strToFloat(_str) / 100;
+      }
+
+      lstProdutoList = await ProdutosProvider.loadProdutos(_produto, '');
       lstProduto = Produto.clear();
       if (lstProdutoList.isNotEmpty) {
-        lstProdutoList[0].qte = 1;
+        FlutterBeep.beep(true);
+        //se houve barras
+        if (_valor > 0) {
+          _qte = double.parse(
+              (_valor / lstProdutoList[0].preco).toStringAsFixed(3));
+        }
+
+        lstProdutoList[0].qte = _qte;
         lstProduto = lstProdutoList[0];
       } else {
-        Funcoes.customBeep(true);
+        FlutterBeep.beep(false);
         showMessage('Registro não encontrado', context);
         FocusScope.of(context).requestFocus(_focusProduto);
       }
@@ -292,7 +321,7 @@ class _DAVControlState extends State<DAVControl> {
                   controller: _edSearchNome,
                   focusNode: _focusProduto,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: corText, fontSize: 18),
+                  style: const TextStyle(color: corText, fontSize: 25),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.fromLTRB(3, 0, 10, 0),
                     border: InputBorder.none,
@@ -300,36 +329,11 @@ class _DAVControlState extends State<DAVControl> {
                     filled: true,
                     // labelText: _edSearchNome.text.isEmpty ? 'Localizar' : '',
                     // floatingLabelAlignment: FloatingLabelAlignment.start,
-                    prefix: GestureDetector(
-                      onTap: () {
-                        Funcoes.escanearCodigoBarras().then((barras) {
-                          if (barras == '-1') {
-                            _edSearchNome.clear;
-                            ctrlApp.searchBar.value = '';
-
-                            showMessage('Leitura cancelada', context);
-                          } else {
-                            Funcoes.customBeep(true);
-                            _edSearchNome.text = barras;
-                            ctrlApp.searchBar.value = barras;
-                            submitData(barras);
-                          }
-                        });
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(
-                          FontAwesomeIcons.barcode,
-                          color: corText,
-                          size: 30,
-                        ),
-                      ),
-                    ),
-                    suffixIcon: GestureDetector(
+                    suffix: GestureDetector(
                       onTap: () {
                         _edSearchNome.clear();
                         ctrlApp.searchBar.value = '';
-                        // FocusScope.of(context).unfocus();
+                        FocusScope.of(context).isFirstFocus;
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
                           color: corText, size: 30),
@@ -351,30 +355,32 @@ class _DAVControlState extends State<DAVControl> {
                     height: 1,
                   )
                 : ExpansionTileCard(
-                    baseColor: Colors.white,
-                    expandedColor: Colors.white,
+                    baseColor: Colors.white24,
+                    expandedColor: Colors.white24,
                     initiallyExpanded: true,
                     // leading:
                     title: Text(
-                      'Descr:' + lstProduto.descricao,
+                      lstProduto.descricao,
                       style: const TextStyle(color: corText, fontSize: 16),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: Column(
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              '  Barras: ' + lstProduto.barras,
-                              style: const TextStyle(
-                                  color: corText,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11),
-                            ),
-                            const Spacer(),
-                            Text(
-                                lstProduto.qte.toString() +
+                        Padding(
+                          padding: const EdgeInsets.all(2.0),
+                          child: Row(
+                            children: [
+                              Text(
+                                lstProduto.barras,
+                                style: const TextStyle(
+                                    color: corText,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11),
+                              ),
+                              const Spacer(),
+                              Text(
+                                lstProduto.qte.toStringAsFixed(3) +
                                     ' X R\$' +
                                     formatter.format(
                                         Funcoes.getValorProduto(lstProduto)) +
@@ -384,8 +390,11 @@ class _DAVControlState extends State<DAVControl> {
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: corText,
-                                    fontWeight: FontWeight.bold))
-                          ],
+                                    fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -424,10 +433,10 @@ class _DAVControlState extends State<DAVControl> {
                               // edFocusNode: edQte,
                               textFlex: 30,
                               caption: lstProduto.qte.toString(),
-                              onComplete: () {
+                              onComplete: (value) {
                                 setState(() {
-                                  lstProduto.qte =
-                                      Funcoes.strToInt(_edQte.text);
+                                  lstProduto.qte = value;
+
                                   FuncoesTela.updateFieldEdit(
                                       lstProduto, _edQte.text);
                                   _edQte.text = FuncoesTela._n.toString();
@@ -459,7 +468,8 @@ class _DAVControlState extends State<DAVControl> {
                               heroTag: "Gravar",
                               onPressed: () {
                                 if (lstProduto.id.isNotEmpty) {
-                                  FuncoesTela._n = lstProduto.qte;
+                                  FuncoesTela._n =
+                                      Funcoes.strToFloat(_edQte.text);
                                   FuncoesTela.doUpdateProduto(
                                       lstProdutoList[0]);
                                   setState(() {
@@ -484,6 +494,49 @@ class _DAVControlState extends State<DAVControl> {
           ),
           Expanded(
             child: DAVProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: true),
+          ),
+          Row(
+            children: [
+              const Spacer(flex: 2),
+              IconButton(
+                onPressed: () {
+                  Funcoes.escanearCodigoBarras().then((barras) {
+                    if (barras == '-1') {
+                      _edSearchNome.clear;
+                      ctrlApp.searchBar.value = '';
+                      showMessage('Leitura cancelada', context);
+                    } else {
+                      FlutterBeep.beep();
+                      _edSearchNome.text = barras;
+                      ctrlApp.searchBar.value = barras;
+                      submitData(barras);
+                    }
+                  });
+                },
+                icon: const Icon(
+                  FontAwesomeIcons.barcode,
+                  color: corText,
+                  size: 50,
+                ),
+                iconSize: 50,
+                color: Colors.white,
+              ),
+              const Spacer(flex: 1),
+              IconButton(
+                onPressed: () async {
+                  await Navigator.of(context)
+                      .pushNamed(AppRoutes.produtoSearch);
+                  setState(() {});
+                },
+                icon: const Icon(
+                  Icons.search,
+                  color: corText,
+                  size: 50,
+                ),
+                iconSize: 50,
+                color: Colors.white,
+              ),
+            ],
           ),
         ]),
       ),
@@ -577,8 +630,7 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
                 ],
               ),
               Padding(
-                padding:
-                    const EdgeInsets.only(bottom: 3, left: 8, top: 3, right: 8),
+                padding: const EdgeInsets.all(3),
                 child: Row(
                   children: [
                     Text(
@@ -588,11 +640,9 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
                           fontWeight: FontWeight.bold,
                           fontSize: 11),
                     ),
-                    const SizedBox(
-                      width: 40,
-                    ),
+                    const Spacer(),
                     Text(
-                        lstProduto[index].qte.toString() +
+                        lstProduto[index].qte.toStringAsFixed(3) +
                             lstProduto[index].unidade +
                             ' X R\$' +
                             formatter.format(
@@ -619,6 +669,7 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
             onDismissed: (() async {
               String _id = lstProduto[index].id.toString();
               await DmModule.deletaPedido(_id);
+              setState(() {});
             }),
           ),
 

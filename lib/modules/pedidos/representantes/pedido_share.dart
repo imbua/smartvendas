@@ -10,7 +10,7 @@ import 'package:smartvendas/shared/number_editcustom.dart';
 import 'package:smartvendas/shared/variaveis.dart';
 
 class FuncoesTela {
-  static int _n = 0;
+  static double _n = 0;
 
   static void doUpdateProduto(
     List<Produto> produto,
@@ -49,7 +49,7 @@ class FuncoesTela {
   }
 
   static void updateField(List<Produto> produto, int index, String qte) {
-    FuncoesTela._n = Funcoes.strToInt(qte);
+    FuncoesTela._n = Funcoes.strToFloat(qte);
     doUpdateProduto(produto, index);
   }
 
@@ -231,7 +231,7 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                                 caption: lstProduto[index].qte.toString(),
                                 onComplete: () {
                                   setState(() {
-                                    lstProduto[index].qte = Funcoes.strToInt(
+                                    lstProduto[index].qte = Funcoes.strToFloat(
                                         _controllers[index].text);
                                     FuncoesTela.updateField(lstProduto, index,
                                         _controllers[index].text);

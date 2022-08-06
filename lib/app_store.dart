@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
-import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/store.dart';
 
 class AppStore = _AppStoreBase with Store;
@@ -21,7 +20,6 @@ abstract class _AppStoreBase extends GetxController {
   _AppStoreBase() {
     _init();
     _lerIni();
-    Funcoes.loadPool();
   }
 
   RxBool isOk = false.obs;
@@ -40,7 +38,7 @@ abstract class _AppStoreBase extends GetxController {
   RxBool showSenha = false.obs;
 
   void isShowSenha() {
-    showSenha.value = showSenha.value ? false : true;
+    showSenha.value = showSenha.value == true ? false : true;
   }
 
   RxInt usuarioId = 0.obs;
@@ -134,6 +132,8 @@ abstract class _AppStoreBase extends GetxController {
       sp.setString('hostDb', cwHostDb);
       sp.setString('hostDbFinan', cwHostDbFinan);
       sp.setBool('remember', isRememberSenha.value);
+      sp.setBool('showSenha', showSenha.value);
+
       _lerIni();
     } catch (exception) {
       throw ("GravaPreferences" + exception.toString());
@@ -151,6 +151,7 @@ abstract class _AppStoreBase extends GetxController {
     usuarioGravado.value = sp.getString('usuario') ?? '';
     senhaGravado.value = sp.getString('psw') ?? '';
     isRememberSenha.value = sp.getBool('remember') ?? false;
+    showSenha.value = sp.getBool('showSenha') ?? false;
 
     cwHost = sp.getString('host') ?? '';
     cwHostDb = sp.getString('hostDb') ?? '';

@@ -5,8 +5,9 @@ import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/shared/botao_customizado.dart';
+import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/shared/header_main.dart';
-import 'package:sn_progress_dialog/sn_progress_dialog.dart';
+import 'package:smartvendas/shared/show_message.dart';
 
 class SincroWidget extends StatefulWidget {
   const SincroWidget({Key? key}) : super(key: key);
@@ -17,11 +18,13 @@ class SincroWidget extends StatefulWidget {
 
 class _SincroWidgetState extends State<SincroWidget> {
   final TextEditingController txtChaveApp = TextEditingController();
+
   bool checked = false;
 
   @override
   Widget build(BuildContext context) {
     final msg = ScaffoldMessenger.of(context);
+
     AppStore ctrlApp = Get.find<AppStore>();
     txtChaveApp.text = ctrlApp.userChaveApp.value;
     return Scaffold(
@@ -49,13 +52,15 @@ class _SincroWidgetState extends State<SincroWidget> {
               caption: 'Envio de Pedidos',
               iconeBotaoBackGround: FontAwesomeIcons.circleUser,
               onPress: () async {
-                final ProgressDialog prProgress =
-                    ProgressDialog(context: context);
+                final pbProgress =
+                    Funcoes.progressBar(context, 1, 'Enviando pedidos...');
+
                 try {
-                  prProgress.show(max: 1, msg: 'Enviando pedidos...');
+                  pbProgress.show();
+
                   await sendPedidos(context).then((value) {
                     // final String   result = value;
-                    prProgress.close();
+                    pbProgress.hide();
                     msg.showSnackBar(
                       SnackBar(
                         content: Text(value),
@@ -63,12 +68,11 @@ class _SincroWidgetState extends State<SincroWidget> {
                     );
                   });
                 } catch (exception) {
-                  msg.showSnackBar(
-                    SnackBar(
-                      content: Text('Erro:' + exception.toString()),
-                    ),
-                  );
-                  prProgress.close;
+                  if (pbProgress.isShowing()) {
+                    pbProgress.hide();
+                  }
+                  showMessage('Erro:' + exception.toString(), context);
+
                   Navigator.of(context).pop();
                 }
               }),
@@ -76,34 +80,16 @@ class _SincroWidgetState extends State<SincroWidget> {
               caption: 'Carga',
               iconeBotaoBackGround: FontAwesomeIcons.circleUser,
               onPress: () async {
-                final ProgressDialog prProgress =
-                    ProgressDialog(context: context);
                 try {
-                  prProgress.show(
-                      max: 1,
-                      msgFontSize: 12,
-                      msg: 'Conectando ao servidor...');
-
                   await cargaDados(ctrlApp.cargaRemoto, context);
-                  prProgress.update(value: 1, msg: 'Totalizando registros...');
 
                   await DmModule.totalCounts();
-                  prProgress.close();
-                  Navigator.of(context).pop();
+                  // Navigator.of(context).pop();
 
-                  msg.showSnackBar(
-                    const SnackBar(
-                      content: Text('Processo concluido!'),
-                    ),
-                  );
+                  showMessage('Process concluido!', context);
                 } catch (exception) {
-                  msg.showSnackBar(
-                    SnackBar(
-                      content: Text('Erro:' + exception.toString()),
-                    ),
-                  );
-                  prProgress.close;
-                  Navigator.of(context).pop();
+                  showMessage('Erro:' + exception.toString(), context);
+                  // Navigator.of(context).pop();
                 }
               }),
           Expanded(child: Container()),

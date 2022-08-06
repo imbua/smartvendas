@@ -24,8 +24,8 @@ class ClienteList extends StatelessWidget {
     return SafeArea(
       child: Scaffold(
         floatingActionButton: FloatingActionButton(
-          onPressed: () =>
-              Navigator.of(context).pushNamed(AppRoutes.clienteEdit),
+          onPressed: () => Navigator.of(context)
+              .pushNamed(AppRoutes.clienteEdit, arguments: null),
           child: const Icon(
             Icons.add,
             size: 30,

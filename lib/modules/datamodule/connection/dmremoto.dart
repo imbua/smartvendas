@@ -6,7 +6,6 @@ import 'package:smartvendas/app_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
-import 'package:smartvendas/modules/datamodule/connection/model/formapgto.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/itens.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos_imagem.dart';
@@ -15,12 +14,12 @@ import 'package:smartvendas/modules/datamodule/connection/provider/clientes_prov
 import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtosimagem_provider.dart';
-import 'package:sn_progress_dialog/sn_progress_dialog.dart';
+import 'package:smartvendas/shared/funcoes.dart';
 
 AppStore ctrlApp = Get.find<AppStore>();
 // var produtosList;
 
-getListCarga(int index, String chave, List data, ProgressDialog prProgress) {
+getListCarga(int index, String chave, List data, BuildContext context) async {
   List datajson = data;
   // var rest =  as List;
   if (!datajson.asMap().containsKey(index)) {
@@ -30,18 +29,13 @@ getListCarga(int index, String chave, List data, ProgressDialog prProgress) {
   Iterable dataList = datajson[index][chave] as List;
 //processo para gravar os dados iniciais somente, pois as listas serao refeitas no decorrer do programa
   if (chave == 'formapgto') {
-    final List<FormaPgto> _resFormaPgto =
-        FormaPgtoProvider.setTable(dataList, true);
-    ctrlApp.lstFormaPgto.clear;
-    for (var item in _resFormaPgto) {
-      ctrlApp.lstFormaPgto.add(item.descricao);
-    }
+    FormaPgtoProvider.setTable(dataList, true);
   } else if (chave == 'cadastro') {
     ClientesProvider.setTable(dataList, true);
   } else if (chave == 'produtos') {
-    ProdutosProvider.setRawTable(dataList, prProgress);
+    await ProdutosProvider.setRawTable(dataList, context);
   } else if (chave == 'categoria') {
-    ctrlApp.lstCategoria = CategoriasProvider.setTable(dataList, true);
+    CategoriasProvider.setTable(dataList, true);
   } else if (chave == 'produtos_imagem') {
     List<ProdutosImagem> produtosimagens =
         ProdutosImagemProvider.setTable(dataList, true);
@@ -50,13 +44,15 @@ getListCarga(int index, String chave, List data, ProgressDialog prProgress) {
     for (ProdutosImagem item in produtosimagens) {
       String _imagem = item.imagem;
       String _id = item.id;
-      DmModule.sqlQuery(
+      await DmModule.sqlQuery(
           'UPDATE produtos  SET imagem="$_imagem" WHERE id="$_id" ');
     }
   }
 }
 
 Future<void> cargaDados(String url, BuildContext cargaContext) async {
+  final pbProgress = Funcoes.progressBar(cargaContext, 1, 'Pegando a carga...');
+
   try {
     try {
       await DmModule.delTable('clientes', '', '');
@@ -71,10 +67,10 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
     // if (_rows == 0) {
     // await myDb.delCategoria();
     // await myDb.delProdutos();
-    final ProgressDialog prProgress = ProgressDialog(context: cargaContext);
-    prProgress.update(value: 0, msg: 'Conectando ao servidor...');
+    await pbProgress.show();
     final response =
         await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+    await pbProgress.hide();
 
     if (response.statusCode == 200) {
       String data = response.body;
@@ -83,17 +79,13 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
         List datajson = json.decode(data);
         // setCategorias(data);
 
-        prProgress.update(value: 0, msg: 'Atualizando produtos...');
-        getListCarga(0, "produtos", datajson, prProgress);
-        prProgress.update(value: 0, msg: 'Atualizando categoria...');
-        getListCarga(1, "categoria", datajson, prProgress);
-        prProgress.update(value: 0, msg: 'Atualizando Forma Pgto...');
-        getListCarga(2, "formapgto", datajson, prProgress);
-        prProgress.update(value: 0, msg: 'Atualizando clientes...');
-        getListCarga(3, "cadastro", datajson, prProgress);
-        prProgress.update(value: 0, msg: 'Atualizando imagens...');
-        getListCarga(4, "produtos_imagem", datajson, prProgress);
-        prProgress.close();
+        await getListCarga(0, "produtos", datajson, cargaContext);
+
+        await getListCarga(1, "categoria", datajson, cargaContext);
+        await getListCarga(2, "formapgto", datajson, cargaContext);
+        await getListCarga(3, "cadastro", datajson, cargaContext);
+        await getListCarga(4, "produtos_imagem", datajson, cargaContext);
+        DmModule.setTabelas(ctrlApp);
       } else {
         throw "Erro na carga,Body Error:" + response.body;
       }

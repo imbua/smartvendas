@@ -7,8 +7,8 @@ class Produto {
   String descricao = '';
   String idcategoria = '';
   String barras = '';
-  int qte = 0;
-  int estoque = 0;
+  double qte = 0;
+  double estoque = 0;
   int qteminatacado = 0;
 
   double preco = 0.00;
@@ -71,8 +71,8 @@ class Produto {
     idcategoria = dados['idcategoria'];
     barras = dados['barras'] ?? '';
     qteminatacado = Funcoes.strToInt(dados['qteminatacado']);
-    qte = Funcoes.strToInt(dados['qte']);
-    estoque = Funcoes.strToInt(dados['estoque']);
+    qte = Funcoes.strToFloat(dados['qte']);
+    estoque = Funcoes.strToFloat(dados['estoque']);
     atacado = Funcoes.strToFloat(dados['atacado']);
     preco = Funcoes.strToFloat(dados['preco']);
     unidade = dados['unidade'];

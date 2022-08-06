@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:smartvendas/componentes/app_rodape.dart';
+import 'package:smartvendas/shared/header_main.dart';
 import 'widgets/login_frame.dart';
 
 class LoginPage extends StatefulWidget {
@@ -44,25 +45,14 @@ class _LoginPageState extends State<LoginPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(top: 30, right: 5, left: 5),
-                  child: Row(children: [
-                    const Icon(Icons.shopify_outlined, size: 120),
-                    Column(
-                      children: const [
-                        Text(
-                          'Smart',
-                          style: TextStyle(
-                              fontSize: 48, fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Vendas',
-                          style: TextStyle(
-                              fontSize: 48, fontStyle: FontStyle.italic),
-                        ),
-                      ],
+                Stack(
+                  children: const [
+                    HeaderMain(
+                      iconeMain: Icons.shop_2_sharp,
+                      titulo: 'Smart Vendas',
+                      altura: 201,
                     ),
-                  ]),
+                  ],
                 ),
                 Expanded(
                   child: SizedBox(

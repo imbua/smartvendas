@@ -12,7 +12,6 @@ import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
 import 'package:smartvendas/shared/show_message.dart';
-import 'package:sn_progress_dialog/sn_progress_dialog.dart';
 
 class sbBotaoAcessar extends StatelessWidget {
   final BuildContext loginContext;
@@ -22,6 +21,7 @@ class sbBotaoAcessar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppStore ctrlApp = Get.find<AppStore>();
+
     // print(ctrlApp.usuario.isNotEmpty);
     return Visibility(
       // visible: (ctrlApp.usuario.isNotEmpty && ctrlApp.senha.isNotEmpty),
@@ -61,7 +61,7 @@ class sbBotaoAcessar extends StatelessWidget {
                 ),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               if (ctrlApp.userChaveApp.isEmpty) {
                 showMessage(
                     'Sem a chave de acesso, use o botão de config.', context);
@@ -75,14 +75,14 @@ class sbBotaoAcessar extends StatelessWidget {
                   DmModule.totalCounts();
 
                   CategoriasProvider.loadCategorias('').then((list) {
-                    ctrlApp.lstCategoria.clear();
+                    ctrlApp.lstCategoria = [];
                     for (var item in list) {
                       ctrlApp.lstCategoria.add(item);
                     }
                   });
 
                   FormaPgtoProvider.loadFormaPgto('').then((list) {
-                    ctrlApp.lstFormaPgto.clear();
+                    ctrlApp.lstFormaPgto = [];
                     for (var item in list) {
                       ctrlApp.lstFormaPgto.add(item.descricao);
                     }
@@ -91,27 +91,13 @@ class sbBotaoAcessar extends StatelessWidget {
                   Navigator.of(context).pushNamed(AppRoutes.menu);
                 } else {
                   try {
-                    loginUsuario(loginContext, ctrlApp.loginRemoto)
+                    await loginUsuario(loginContext, ctrlApp.loginRemoto)
                         .then((value) {
                       if (value.isNotEmpty) {
                         if (ctrlApp.usuarioId.value != 0) {
-                          if (ctrlApp.usuarioId.value != 0) {
-                            CategoriasProvider.loadCategorias('').then((list) {
-                              ctrlApp.lstCategoria.clear();
-                              for (var item in list) {
-                                ctrlApp.lstCategoria.add(item);
-                              }
-                            });
-
-                            FormaPgtoProvider.loadFormaPgto('').then((list) {
-                              ctrlApp.lstFormaPgto.clear();
-                              for (var item in list) {
-                                ctrlApp.lstFormaPgto.add(item.descricao);
-                              }
-                            });
-                            DmModule.totalCounts();
-                            Navigator.of(context).pushNamed(AppRoutes.menu);
-                          }
+                          DmModule.setTabelas(ctrlApp);
+                          Navigator.of(loginContext).pushNamed(AppRoutes.menu);
+                          DmModule.totalCounts();
                         }
                       }
                     });
@@ -132,28 +118,26 @@ class sbBotaoAcessar extends StatelessWidget {
 
   Future<List<Usuario>> loginUsuario(
       BuildContext loginContext, String url) async {
-    final msg = ScaffoldMessenger.of(loginContext);
-    final ProgressDialog prProgress = ProgressDialog(context: loginContext);
+    // final ProgressDialog prProgress = ProgressDialog(context: loginContext);
 
     try {
       // http.Response(conenc)
-      prProgress.show(
-          max: 1, msgFontSize: 12, msg: 'Conectando ao servidor...');
-      prProgress.update(value: 0, msg: 'Conectando ao servidor...');
+      // prProgress.show(
+      // max: 1, msgFontSize: 12, msg: 'Conectando ao servidor...');
+      // prProgress.update(value: 0, msg: 'Conectando ao servidor...');
       final response =
           await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
-      prProgress.update(value: 1, msg: 'Conectado!');
-      prProgress.close;
+      // prProgress.update(value: 1, msg: 'Conectado!');
+      // prProgress.close;
       // Navigator.of(loginContext).pop();
+      // showMessage('OK!', loginContext);
 
       if (response.statusCode != 200) {
-        // msg.showSnackBar(
-        //   const SnackBar(
-        //     content: Text('Erro no link do login, falar com o desenvolvedor!'),
-        //   ),
-        // );
-        throw "Erro no link do login, response Error:" +
-            response.statusCode.toString();
+        showMessage(
+            'Erro no link do login, falar com o desenvolvedor!', loginContext);
+        return [];
+        // throw "Erro no link do login, response Error:" +
+        // response.statusCode.toString();
       }
       // ignore: unrelated_type_equality_checks
       if (response.statusCode == 200) {
@@ -162,8 +146,6 @@ class sbBotaoAcessar extends StatelessWidget {
         // print(data);
         if (data != 'erro') {
           Iterable list = json.decode(response.body);
-          prProgress.close;
-          Navigator.of(loginContext).pop();
           return list.map((list) => Usuario.fromJson(list)).toList();
 
           // List<Usuario> _usuario = json.decode(response.body);
@@ -171,36 +153,24 @@ class sbBotaoAcessar extends StatelessWidget {
           //     .map((_usuario) => Usuario.fromJson(_usuario))
           //     .toList();
         } else {
-          prProgress.close;
+          showMessage('Usuário, não encontrado!', loginContext);
 
-          msg.showSnackBar(
-            const SnackBar(
-              content: Text('Usuário, não encontrado!'),
-            ),
-          );
-          Navigator.of(loginContext).pop();
-
+          // Navigator.of(loginContext).pop();
           return [];
         }
       } else {
-        msg.showSnackBar(
-          SnackBar(
-            content: Text("Erro no login, response Error:" +
-                response.statusCode.toString()),
-          ),
-        );
-        throw "Erro no login, response Error:" + response.statusCode.toString();
+        showMessage(
+            "Erro no login, response Error:" + response.statusCode.toString(),
+            loginContext);
+
+        return [];
+        // throw "Erro no login, response Error:" + response.statusCode.toString();
       }
     } catch (exception) {
-      prProgress.close;
+      // prProgress.close;
       // Navigator.of(loginContext).pop();
-
-      msg.showSnackBar(
-        SnackBar(
-          content:
-              Text("Erro no login, exception Error:" + exception.toString()),
-        ),
-      );
+      showMessage("Erro no login, exception Error:" + exception.toString(),
+          loginContext);
 
       return [];
       // throw "Error on http." + exception.toString();
