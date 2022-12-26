@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:jiffy/jiffy.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
@@ -12,6 +14,7 @@ import 'package:smartvendas/modules/datamodule/connection/model/produtos_imagem.
 import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/clientes_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/fornecedores_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtosimagem_provider.dart';
 import 'package:smartvendas/shared/funcoes.dart';
@@ -19,21 +22,30 @@ import 'package:smartvendas/shared/funcoes.dart';
 AppStore ctrlApp = Get.find<AppStore>();
 // var produtosList;
 
-getListCarga(int index, String chave, List data, BuildContext context) async {
+getListCarga(String chave, List data, BuildContext context) async {
   List datajson = data;
   // var rest =  as List;
-  if (!datajson.asMap().containsKey(index)) {
+
+  int i = 0;
+  Iterable dataList = [];
+  for (i = 0; i < datajson.length; i++) {
+    if (datajson[i][chave] != null) {
+      dataList = datajson[i][chave] as List;
+      break;
+    }
+  }
+  if (dataList.isEmpty) {
     return;
   }
-
-  Iterable dataList = datajson[index][chave] as List;
 //processo para gravar os dados iniciais somente, pois as listas serao refeitas no decorrer do programa
   if (chave == 'formapgto') {
     FormaPgtoProvider.setTable(dataList, true);
   } else if (chave == 'cadastro') {
     ClientesProvider.setTable(dataList, true);
+  } else if (chave == 'fornecedores') {
+    FornecedoresProvider.setTable(dataList, true);
   } else if (chave == 'produtos') {
-    await ProdutosProvider.setRawTable(dataList, context);
+    await ProdutosProvider.setRawTable(dataList, context, ctrlApp.isLocal);
   } else if (chave == 'categoria') {
     CategoriasProvider.setTable(dataList, true);
   } else if (chave == 'produtos_imagem') {
@@ -50,16 +62,24 @@ getListCarga(int index, String chave, List data, BuildContext context) async {
   }
 }
 
+Future<void> clearToCarga() async {
+  await DmModule.delTable('clientes', '', '');
+  await DmModule.delTable('fornecedores', '', '');
+  await DmModule.delTable('formapgto', '', '');
+  await DmModule.delTable('categorias', '', '');
+  await DmModule.delTable('produtos', '', '');
+  await DmModule.delTable('produtosimagem', '', '');
+  ctrlApp.totalClientes.value = 0;
+  ctrlApp.totalProdutos.value = 0;
+  ctrlApp.totalPedidos.value = 0;
+}
+
 Future<void> cargaDados(String url, BuildContext cargaContext) async {
   final pbProgress = Funcoes.progressBar(cargaContext, 1, 'Pegando a carga...');
 
   try {
     try {
-      await DmModule.delTable('clientes', '', '');
-      await DmModule.delTable('formapgto', '', '');
-      await DmModule.delTable('categorias', '', '');
-      await DmModule.delTable('produtos', '', '');
-      await DmModule.delTable('produtosimagem', '', '');
+      await clearToCarga();
       await Future.delayed(const Duration(seconds: 1));
     } catch (exception) {
       rethrow;
@@ -69,23 +89,28 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
     // await myDb.delProdutos();
     await pbProgress.show();
     final response =
-        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
-    await pbProgress.hide();
+        await http.get(Uri.parse(url)).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
+      final decoded_data = GZipCodec().decode(response.bodyBytes);
       String data = response.body;
+      Map<String, String> dataheader = response.headers;
       // print(data);
+      await pbProgress.hide();
       if (data != 'erro') {
         List datajson = json.decode(data);
         // setCategorias(data);
 
-        await getListCarga(0, "produtos", datajson, cargaContext);
+        await getListCarga("produtos", datajson, cargaContext);
 
-        await getListCarga(1, "categoria", datajson, cargaContext);
-        await getListCarga(2, "formapgto", datajson, cargaContext);
-        await getListCarga(3, "cadastro", datajson, cargaContext);
-        await getListCarga(4, "produtos_imagem", datajson, cargaContext);
+        await getListCarga("categoria", datajson, cargaContext);
+        await getListCarga("formapgto", datajson, cargaContext);
+        await getListCarga("cadastro", datajson, cargaContext);
+        await getListCarga("fornecedores", datajson, cargaContext);
+        await getListCarga("produtos_imagem", datajson, cargaContext);
         DmModule.setTabelas(ctrlApp);
+        ctrlApp.ultimaCarga = Jiffy().format('dd[/]MM[/]yyyy');
+        ctrlApp.gravarIni();
       } else {
         throw "Erro na carga,Body Error:" + response.body;
       }
@@ -109,6 +134,44 @@ String encodeToHttp(List jsonRes) {
 String encodeJsonToHttp(String jsonRes) {
   var _jsUtf8 = utf8.encode(jsonRes);
   return base64.encode(_jsUtf8);
+}
+
+Future<String> sendColetor(BuildContext cargaContext) async {
+  try {
+    var url = ctrlApp.urlSendColetor;
+    List _itens = await DmModule.getData('produtos', 'qte', '>', '0');
+    //await ClientesProvider.getClientesPedidos();
+    // myDb.getToSendCliente();
+
+    // print(_clientes.toList());
+    if (_itens.isNotEmpty) {
+      var _jsItm = encodeToHttp(_itens);
+      final response = await http.post(Uri.parse(url), headers: {
+        'Content-type': 'application/x-www-form-urlencoded'
+      }, body: {
+        "pHeader": "1",
+        "pItens": _jsItm,
+        "pCli": "1",
+        "pOrigem": "COLETOR",
+      });
+      if (response.statusCode == 200) {
+        if (response.body == 'true') {
+          ProdutosProvider.resetProdutos();
+
+          return ' processo concluido!';
+        } else {
+          return ' Erro no envio ';
+        }
+      } else {
+        return ' Erro na comunicação, StatusCode:' +
+            response.statusCode.toString();
+      }
+    }
+    return ' Processo concluido!';
+  } catch (exception) {
+    // throw("Error on http." + exception.toString());
+    rethrow;
+  }
 }
 
 Future<String> sendPedidos(BuildContext cargaContext) async {
