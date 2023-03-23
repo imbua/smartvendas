@@ -15,20 +15,20 @@ class FuncoesTela {
   }
 
   static double updateTotal(List<Item> item) {
-    double _val = 0;
+    double fval = 0;
     int i = 0;
     for (i = 0; i < item.length; i++) {
       if ((item[i].qtde < item[i].qteminatacado) ||
           (item[i].qteminatacado == 0)) {
-        _val = _val + (item[i].valor * item[i].qtde);
+        fval = fval + (item[i].valor * item[i].qtde);
       } else {
-        _val = _val + (item[i].atacado * item[i].qtde);
+        fval = fval + (item[i].atacado * item[i].qtde);
       }
     }
 
-    //  ItensBuilder().ctrlApp.totalGeralProdutosFmt.value = formatter.format(_val);
-    //  ItensBuilder().ctrlApp.totalGeralProdutos.value = _val;
-    return _val;
+    //  ItensBuilder().ctrlApp.totalGeralProdutosFmt.value = formatter.format(fval);
+    //  ItensBuilder().ctrlApp.totalGeralProdutos.value = fval;
+    return fval;
   }
 
   static void add(List<Item> item, int index) {
@@ -44,7 +44,7 @@ String getPrice(Item item) {
   } else {
     val = item.atacado;
   }
-  return formatter.format(val) + ' = ' + formatter.format(item.qtde * val);
+  return '${formatter.format(val)} = ${formatter.format(item.qtde * val)}';
 }
 
 class ItensBuilder extends StatefulWidget {
@@ -81,9 +81,7 @@ class _ItensBuilderState extends State<ItensBuilder> {
                 Row(
                   children: [
                     Text(
-                        widget.lstCliente[index].totalfmt +
-                            '   ' +
-                            widget.lstCliente[index].unidade,
+                        '${widget.lstCliente[index].totalfmt}   ${widget.lstCliente[index].unidade}',
                         style: const TextStyle(
                             fontSize: 12,
                             color: corText,
@@ -91,10 +89,7 @@ class _ItensBuilderState extends State<ItensBuilder> {
                     const Spacer(),
                     (widget.lstCliente[index].qtde) > 0
                         ? Text(
-                            widget.lstCliente[index].qtde.toString() +
-                                widget.lstCliente[index].unidade +
-                                ' X ' +
-                                getPrice(widget.lstCliente[index]),
+                            '${widget.lstCliente[index].qtde}${widget.lstCliente[index].unidade} X ${getPrice(widget.lstCliente[index])}',
                             style: const TextStyle(
                                 fontSize: 12,
                                 color: corText,
@@ -117,7 +112,7 @@ class _ItensBuilderState extends State<ItensBuilder> {
                   child: Row(
                     children: [
                       FloatingActionButton(
-                        heroTag: "minusconta" + index.toString(),
+                        heroTag: "minusconta$index",
                         onPressed: () {
                           setState(() {
                             FuncoesTela.minus(widget.lstCliente, index);
@@ -128,18 +123,18 @@ class _ItensBuilderState extends State<ItensBuilder> {
                                 .format(ctrlApp.totalGeralProdutos.value);
                           });
                         },
+                        backgroundColor: Colors.blueGrey,
                         child: const Icon(
                           Icons.remove_circle_outline,
                           size: 36,
                         ),
-                        backgroundColor: Colors.blueGrey,
                       ),
                       const Spacer(),
                       Text(widget.lstCliente[index].qtde.toString(),
                           style: const TextStyle(fontSize: 60.0)),
                       const Spacer(),
                       FloatingActionButton(
-                        heroTag: "addconta" + index.toString(),
+                        heroTag: "addconta$index",
                         onPressed: () {
                           setState(() {
                             // FuncoesTela._n = widget.lstCliente[index].qtde;
@@ -151,11 +146,11 @@ class _ItensBuilderState extends State<ItensBuilder> {
                                 .format(ctrlApp.totalGeralProdutos.value);
                           });
                         },
+                        backgroundColor: Colors.blueGrey,
                         child: const Icon(
                           Icons.add_circle_outline,
                           size: 36,
                         ),
-                        backgroundColor: Colors.blueGrey,
                       ),
                       const SizedBox(
                         width: 20,

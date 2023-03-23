@@ -10,10 +10,10 @@ class PedidosProvider {
     List<Map<String, dynamic>> res;
 
     if (searchNome == '' || searchNome.isEmpty) {
-      res = await DmModule.getTable('pedidos');
+      res = await DmModule.sqlQuery('select * from pedidos order by id');
     } else {
-      res = await DmModule.getNearestData(
-          'pedidos', 'descricao', searchNome, false);
+      res = await DmModule.sqlQuery(
+          'select * from pedidos where descricao=" $searchNome"');
     }
     return setTable(res, false);
   }
@@ -81,6 +81,7 @@ class PedidosProvider {
         'totalfmt': pedido.totalfmt,
         'enviado': pedido.enviado,
         'formapgto': pedido.formapgto,
+        'observacao': pedido.observacao,
       },
     );
   }

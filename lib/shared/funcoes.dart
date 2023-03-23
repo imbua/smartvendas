@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 
 import 'package:flutter/services.dart';
 import 'package:progress_dialog_null_safe/progress_dialog_null_safe.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
+import 'package:smartvendas/shared/variaveis.dart';
 
 class LowerCaseTextFormatter extends TextInputFormatter {
   @override
@@ -27,7 +27,7 @@ class Funcoes {
   static ProgressDialog progressBar(
       BuildContext context, double maximo, String msg) {
     ProgressDialog prProgress = ProgressDialog(
-      context,
+      NavigationService.navigatorKey.currentContext!,
       type: ProgressDialogType.download,
       textDirection: TextDirection.ltr,
       // isDismissible: true,
@@ -59,13 +59,28 @@ class Funcoes {
     return prProgress;
   }
 
-  static double getValorProduto(Produto produto) {
-    if (produto.qteminatacado > 0 &&
-        produto.atacado > 0 &&
-        produto.qte >= produto.qteminatacado) {
-      return produto.atacado;
+  static String getFieldValor(Produto produto) {
+    String str = 'preco';
+    if (produto.qteminatacado > 0) {
+      if (produto.qte >= produto.qteminatacado) {
+        str = 'atacado';
+      }
+    }
+    return str;
+    // produto.qte = _n;
+  }
+
+  static double getValorProduto(Produto produto, String origem) {
+    if (origem == 'cotacao') {
+      return produto.custo * produto.qtevolume;
     } else {
-      return produto.preco;
+      if (produto.qteminatacado > 0 &&
+          produto.atacado > 0 &&
+          produto.qte >= produto.qteminatacado) {
+        return produto.atacado;
+      } else {
+        return produto.preco;
+      }
     }
   }
 
@@ -100,25 +115,7 @@ class Funcoes {
   }
 
   static String doXmlGetChaveAmazon(String fChave) {
-    return '<?xml version="1.0"?>'
-            '<comando>'
-            '	<clienteweb><id>' +
-        fChave +
-        '</id></clienteweb>'
-            '	<funcao>'
-            '	<unitphp>clientesweb.class</unitphp>'
-            '	<tipo>GetClienteWeb</tipo>'
-            ' <campo>id</campo>'
-            ' <conteudo>' +
-        fChave +
-        '</conteudo>'
-            ' <range></range>'
-            ' <tabela></tabela>'
-            ' <complemento></complemento>'
-            ' <empresa></empresa>'
-            ' <data></data>'
-            '	</funcao>'
-            '</comando>';
+    return '<?xml version="1.0"?><comando>	<clienteweb><id>$fChave</id></clienteweb>	<funcao>	<unitphp>clientesweb.class</unitphp>	<tipo>GetClienteWeb</tipo> <campo>id</campo> <conteudo>$fChave</conteudo> <range></range> <tabela></tabela> <complemento></complemento> <empresa></empresa> <data></data>	</funcao></comando>';
   }
 
   static double strToFloat(var value) {
@@ -132,8 +129,8 @@ class Funcoes {
 
   static Uint8List getImagenBase64(String imagem) {
     try {
-      String _imageBase64 = imagem;
-      return base64.decode(_imageBase64);
+      String imageBase64 = imagem;
+      return base64.decode(imageBase64);
     } catch (err) {
       throw (err.toString());
       //   '`path_provider_ios` threw an error: $err. '

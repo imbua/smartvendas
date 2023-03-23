@@ -4,12 +4,14 @@ import 'header_background.dart';
 
 class HeaderMain extends StatelessWidget {
   final IconData iconeMain;
+  final String logoMain;
   final String titulo;
   final double altura;
 
   const HeaderMain({
     Key? key,
     required this.iconeMain,
+    this.logoMain = "",
     required this.titulo,
     required this.altura,
   }) : super(key: key);
@@ -20,10 +22,16 @@ class HeaderMain extends StatelessWidget {
       children: <Widget>[
         HeaderBackground(heightHeader: altura),
         Positioned(
-            top: altura > 200 ? 80 : 20,
+            top: altura > 200 ? 50 : 20,
             left: 20,
-            child: Icon(iconeMain,
-                size: 80, color: Colors.white.withOpacity(0.2))),
+            child: (logoMain == "")
+                ? Icon(iconeMain,
+                    size: 80, color: Colors.white.withOpacity(0.2))
+                : SizedBox(
+                    height: 130,
+                    width: 130,
+                    child: Image(image: AssetImage(logoMain)),
+                  )),
         Positioned(
           top: altura > 200 ? 100 : 20,
           left: 150,

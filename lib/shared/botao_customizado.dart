@@ -12,22 +12,6 @@ class BotaoBackGround extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              right: -20,
-              top: -20,
-              child: FaIcon(
-                iconeBotaoBackGround,
-                size: 100,
-                color: Colors.white.withOpacity(0.2),
-              ),
-            ),
-          ],
-        ),
-      ),
       width: double.infinity,
       height: 70,
       margin: const EdgeInsets.all(20),
@@ -44,6 +28,22 @@ class BotaoBackGround extends StatelessWidget {
           Color.fromARGB(255, 32, 132, 214),
           Color.fromARGB(255, 138, 169, 194),
         ]),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              right: -20,
+              top: -20,
+              child: FaIcon(
+                iconeBotaoBackGround,
+                size: 100,
+                color: Colors.white.withOpacity(0.2),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

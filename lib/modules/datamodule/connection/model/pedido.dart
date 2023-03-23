@@ -11,6 +11,8 @@ class Pedido {
   String totalfmt = '';
   int enviado = 0;
   String formapgto = '';
+  String observacao = '';
+
   Pedido(
     this.id,
     this.idvendedor,
@@ -22,6 +24,7 @@ class Pedido {
     this.totalfmt,
     this.enviado,
     this.formapgto,
+    this.observacao,
   );
 
   Map toJson() => {
@@ -49,6 +52,7 @@ class Pedido {
       dados['totalfmt'],
       dados['enviado'],
       dados['formapgto'],
+      dados['observacao'],
     );
     if (toDb) {
       PedidosProvider.addUpdatePedido(pedido);
@@ -69,6 +73,7 @@ class Pedido {
     dados['totalfmt'] = totalfmt;
     dados['enviado'] = enviado;
     dados['formapgto'] = formapgto;
+    dados['observacao'] = observacao;
     return dados;
   }
 
@@ -83,5 +88,6 @@ class Pedido {
     totalfmt = dados['totalfmt'];
     enviado = dados['enviado'];
     formapgto = dados['formapgto'];
+    observacao = dados['observacao'];
   }
 }

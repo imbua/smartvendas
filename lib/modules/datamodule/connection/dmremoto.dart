@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -54,10 +53,10 @@ getListCarga(String chave, List data, BuildContext context) async {
 //grava em produtos
 
     for (ProdutosImagem item in produtosimagens) {
-      String _imagem = item.imagem;
-      String _id = item.id;
+      String imagem = item.imagem;
+      String id = item.id;
       await DmModule.sqlQuery(
-          'UPDATE produtos  SET imagem="$_imagem" WHERE id="$_id" ');
+          'UPDATE produtos  SET imagem="$imagem" WHERE id="$id" ');
     }
   }
 }
@@ -92,9 +91,16 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
         await http.get(Uri.parse(url)).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
-      final decoded_data = GZipCodec().decode(response.bodyBytes);
+      // final decoded_data = GZipCodec().decode(response.bodyBytes);
+      pbProgress.update(
+          // progress: i.toDouble(),
+          progressWidget: Container(
+              padding: const EdgeInsets.all(8.0),
+              child: const CircularProgressIndicator()),
+          message: 'Recebendo a carga...');
+
       String data = response.body;
-      Map<String, String> dataheader = response.headers;
+      // Map<String, String> dataheader = response.headers;
       // print(data);
       await pbProgress.hide();
       if (data != 'erro') {
@@ -102,20 +108,29 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
         // setCategorias(data);
 
         await getListCarga("produtos", datajson, cargaContext);
+        await pbProgress.show();
+        pbProgress.update(
+            // progress: i.toDouble(),
+            progressWidget: Container(
+                padding: const EdgeInsets.all(8.0),
+                child: const CircularProgressIndicator()),
+            message: 'Gravando as outras tabelas...');
 
         await getListCarga("categoria", datajson, cargaContext);
         await getListCarga("formapgto", datajson, cargaContext);
-        await getListCarga("cadastro", datajson, cargaContext);
+
         await getListCarga("fornecedores", datajson, cargaContext);
+        await getListCarga("cadastro", datajson, cargaContext);
         await getListCarga("produtos_imagem", datajson, cargaContext);
+        await pbProgress.hide();
         DmModule.setTabelas(ctrlApp);
         ctrlApp.ultimaCarga = Jiffy().format('dd[/]MM[/]yyyy');
         ctrlApp.gravarIni();
       } else {
-        throw "Erro na carga,Body Error:" + response.body;
+        throw "Erro na carga,Body Error:${response.body}";
       }
     } else {
-      throw "Erro na carga, response Error:" + response.statusCode.toString();
+      throw "Erro na carga, response Error:${response.statusCode}";
     }
     // return true;
 
@@ -126,31 +141,31 @@ Future<void> cargaDados(String url, BuildContext cargaContext) async {
 }
 
 String encodeToHttp(List jsonRes) {
-  var _jsResult = json.encode(jsonRes);
-  var _jsUtf8 = utf8.encode(_jsResult);
-  return base64.encode(_jsUtf8);
+  var jsResult = json.encode(jsonRes);
+  var jsUtf8 = utf8.encode(jsResult);
+  return base64.encode(jsUtf8);
 }
 
 String encodeJsonToHttp(String jsonRes) {
-  var _jsUtf8 = utf8.encode(jsonRes);
-  return base64.encode(_jsUtf8);
+  var jsUtf8 = utf8.encode(jsonRes);
+  return base64.encode(jsUtf8);
 }
 
 Future<String> sendColetor(BuildContext cargaContext) async {
   try {
     var url = ctrlApp.urlSendColetor;
-    List _itens = await DmModule.getData('produtos', 'qte', '>', '0');
+    List itens = await DmModule.getData('produtos', 'qte', '>', '0');
     //await ClientesProvider.getClientesPedidos();
     // myDb.getToSendCliente();
 
-    // print(_clientes.toList());
-    if (_itens.isNotEmpty) {
-      var _jsItm = encodeToHttp(_itens);
+    // print(clientes.toList());
+    if (itens.isNotEmpty) {
+      var jsItm = encodeToHttp(itens);
       final response = await http.post(Uri.parse(url), headers: {
         'Content-type': 'application/x-www-form-urlencoded'
       }, body: {
         "pHeader": "1",
-        "pItens": _jsItm,
+        "pItens": jsItm,
         "pCli": "1",
         "pOrigem": "COLETOR",
       });
@@ -163,8 +178,7 @@ Future<String> sendColetor(BuildContext cargaContext) async {
           return ' Erro no envio ';
         }
       } else {
-        return ' Erro na comunicação, StatusCode:' +
-            response.statusCode.toString();
+        return ' Erro na comunicação, StatusCode:${response.statusCode}';
       }
     }
     return ' Processo concluido!';
@@ -177,25 +191,25 @@ Future<String> sendColetor(BuildContext cargaContext) async {
 Future<String> sendPedidos(BuildContext cargaContext) async {
   try {
     var url = ctrlApp.urlSendPedidos;
-    List _clientes = await ClientesProvider.getClientesPedidos();
+    List clientes = await ClientesProvider.getClientesPedidos();
 
-    List _ped = await DmModule.getTable('pedidos');
-    if (_ped.isNotEmpty) {
-      List _itens = await DmModule.getTable('itens');
+    List ped = await DmModule.getTable('pedidos');
+    if (ped.isNotEmpty) {
+      List itens = await DmModule.getTable('itens');
       //await ClientesProvider.getClientesPedidos();
       // myDb.getToSendCliente();
 
-      // print(_clientes.toList());
-      if (_itens.isNotEmpty) {
-        var _jsPed = encodeToHttp(_ped);
-        var _jsItm = encodeToHttp(_itens);
-        var _jsCli = encodeToHttp(_clientes);
+      // print(clientes.toList());
+      if (itens.isNotEmpty) {
+        var jsPed = encodeToHttp(ped);
+        var jsItm = encodeToHttp(itens);
+        var jsCli = encodeToHttp(clientes);
         final response = await http.post(Uri.parse(url), headers: {
           'Content-type': 'application/x-www-form-urlencoded'
         }, body: {
-          "pHeader": _jsPed,
-          "pItens": _jsItm,
-          "pCli": _jsCli,
+          "pHeader": jsPed,
+          "pItens": jsItm,
+          "pCli": jsCli,
           "pOrigem": "PEDIDO",
         });
         if (response.statusCode == 200) {
@@ -206,8 +220,7 @@ Future<String> sendPedidos(BuildContext cargaContext) async {
             return ' Erro no envio ';
           }
         } else {
-          return ' Erro na comunicação, StatusCode:' +
-              response.statusCode.toString();
+          return ' Erro na comunicação, StatusCode:${response.statusCode}';
         }
       }
       return ' Processo concluido!';
@@ -225,52 +238,51 @@ Future<bool> sendDAV(BuildContext cargaContext, Cliente cliente,
   final msg = ScaffoldMessenger.of(cargaContext);
   try {
     var url = ctrlApp.urlSendPedidos;
-    bool _bool = false;
-    String _msg = '';
+    bool fbool = false;
+    String fmsg = '';
 
     //await ClientesProvider.getClientesPedidos();
     // myDb.getToSendCliente();
 
-    // print(_clientes.toList());
+    // print(clientes.toList());
 
-    var _jsPed = encodeJsonToHttp(jsonEncode(pedido));
-    var _jsItm = encodeJsonToHttp(jsonEncode(items));
-    var _jsCli = encodeJsonToHttp(jsonEncode(cliente));
+    var jsPed = encodeJsonToHttp(jsonEncode(pedido));
+    var jsItm = encodeJsonToHttp(jsonEncode(items));
+    var jsCli = encodeJsonToHttp(jsonEncode(cliente));
     final response = await http.post(Uri.parse(url), headers: {
       'Content-type': 'application/x-www-form-urlencoded'
     }, body: {
-      "pHeader": _jsPed,
-      "pItens": _jsItm,
-      "pCli": _jsCli,
+      "pHeader": jsPed,
+      "pItens": jsItm,
+      "pCli": jsCli,
       "pOrigem": "DAV",
     });
     if (response.statusCode == 200) {
       if (response.body == 'true') {
-        _bool = true;
+        fbool = true;
       } else {
-        _bool = false;
-        _msg = response.body;
+        fbool = false;
+        fmsg = response.body;
       }
     } else {
-      _bool = false;
-      _msg =
-          'Erro na comunicação, StatusCode:' + response.statusCode.toString();
+      fbool = false;
+      fmsg = 'Erro na comunicação, StatusCode:${response.statusCode}';
     }
-    if (_bool == false) {
+    if (fbool == false) {
       msg.showSnackBar(
         SnackBar(
           content: Text(
-            _msg,
+            fmsg,
           ),
         ),
       );
     }
-    return _bool;
+    return fbool;
   } catch (exception) {
     msg.showSnackBar(
       SnackBar(
         content: Text(
-          "Error on http." + exception.toString(),
+          "Error on http.$exception",
         ),
       ),
     );
@@ -297,6 +309,6 @@ Future<bool> sendDAV(BuildContext cargaContext, Cliente cliente,
 //   return list.map((list) => Cliente.fromMap(list, true)).toList();
 // }
 
-// print(_ped);
+// print(ped);
 
-// print(_itens);
+// print(itens);

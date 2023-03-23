@@ -10,9 +10,14 @@ import 'package:smartvendas/modules/datamodule/connection/provider/itens_provide
 import 'package:smartvendas/modules/datamodule/connection/provider/pedidos_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_share.dart';
+import 'package:smartvendas/modules/pedidos/representantes/report/pdf_invoice.dart';
+import 'package:smartvendas/shared/funcoes.dart';
+
 import 'package:smartvendas/shared/header_main.dart';
 import 'package:smartvendas/shared/variaveis.dart';
 import 'package:jiffy/jiffy.dart';
+
+String _observacao = "";
 
 class PedidoConta extends StatelessWidget {
   const PedidoConta({Key? key}) : super(key: key);
@@ -26,7 +31,10 @@ class PedidoConta extends StatelessWidget {
   Widget build(BuildContext context) {
     final PedidoArguments args =
         ModalRoute.of(context)!.settings.arguments as PedidoArguments;
-    RxString? _itemSelecionado = "".obs;
+    // final TextEditingController _observacaoController = TextEditingController();
+
+    RxString? fitemSelecionado = "".obs;
+
     final msg = ScaffoldMessenger.of(context);
 
     AppStore ctrlApp = Get.find<AppStore>();
@@ -64,7 +72,7 @@ class PedidoConta extends StatelessWidget {
               ),
               const Spacer(),
               Obx(() => Text(
-                    'Total:' + ctrlApp.totalGeralProdutosFmt.value,
+                    'Total:${ctrlApp.totalGeralProdutosFmt.value}',
                     style: const TextStyle(color: Colors.white),
                   )),
               const Spacer(),
@@ -85,7 +93,7 @@ class PedidoConta extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.save, color: Colors.black54),
                 onPressed: () async {
-                  if (_itemSelecionado.value == '') {
+                  if (fitemSelecionado.value == '') {
                     msg.showSnackBar(
                       const SnackBar(
                         content: Text('Escolha a forma de pagamento'),
@@ -95,10 +103,10 @@ class PedidoConta extends StatelessWidget {
                   }
 
                   if (ctrlApp.totalGeralProdutos.value > 0) {
-                    final List<Pedido> _pedido = [];
-                    final List<Item> _lstItens = [];
+                    final List<Pedido> fpedido = [];
+                    final List<Item> lstItens = [];
 
-                    _pedido.add(
+                    fpedido.add(
                       Pedido(
                         ctrlApp.getPedidoId(),
                         ctrlApp.usuarioId.value.toString(),
@@ -109,56 +117,64 @@ class PedidoConta extends StatelessWidget {
                         ctrlApp.totalGeralProdutos.value,
                         ctrlApp.totalGeralProdutosFmt.value,
                         0,
-                        _itemSelecionado.value,
+                        fitemSelecionado.value,
+                        _observacao,
                       ),
                     );
                     int i;
                     String id = ItensProvider.getItemId(
                         ctrlApp.usuarioId.value.toString());
 
-                    ProdutosProvider.loadProdutosConta().then((value) {
-                      for (i = 0; i < value.length; i++) {
-                        _lstItens.add(Item(
-                            id + i.toString(),
-                            ctrlApp.pedidoId.value,
-                            value[i].id,
-                            value[i].descricao,
-                            value[i].unidade,
-                            value[i].qte,
-                            value[i].qteminatacado,
-                            value[i].preco,
-                            value[i].atacado,
-                            value[i].valorfmt,
-                            0));
-                      }
+                    final produtos = await ProdutosProvider.loadProdutosConta();
+                    for (i = 0; i < produtos.length; i++) {
+                      lstItens.add(Item(
+                          id + i.toString(),
+                          ctrlApp.pedidoId.value,
+                          produtos[i].id,
+                          produtos[i].descricao,
+                          produtos[i].unidade,
+                          produtos[i].qte,
+                          produtos[i].qteminatacado,
+                          produtos[i].preco,
+                          produtos[i].atacado,
+                          produtos[i].valorfmt,
+                          0));
+                    }
 
-                      if (args.origem == 'dav') {
-                        sendDAV(context, args.lstCliente, _pedido, _lstItens)
-                            .then((resultado) {
-                          if (resultado == true) {
-                            PedidosProvider.resetProdutos();
-
-                            Navigator.of(context).popUntil(
-                                (ModalRoute.withName(AppRoutes.menu)));
-                          }
-                        });
-                      } else {
-                        PedidosProvider.addUpdatePedido(_pedido[0]);
-
-                        ProdutosProvider.loadProdutosConta().then((value) {
-                          for (var item in _lstItens) {
-                            ItensProvider.addUpdateItem(item);
-                          }
-                        });
-
+                    if (args.origem == 'dav') {
+                      final bool resultado = await sendDAV(
+                          context, args.lstCliente, fpedido, lstItens);
+                      if (resultado == true) {
                         PedidosProvider.resetProdutos();
 
-                        DmModule.getCount('pedidos').then((resultado) =>
-                            ctrlApp.totalPedidos.value = resultado);
+                        await PdfInvoice(
+                                itens: lstItens,
+                                pedido: fpedido[0],
+                                titulo: 'DAV')
+                            .generate(context);
+
                         Navigator.of(context)
                             .popUntil((ModalRoute.withName(AppRoutes.menu)));
                       }
-                    });
+                    } else {
+                      PedidosProvider.addUpdatePedido(fpedido[0]);
+                      // final produtos = await  ProdutosProvider.loadProdutosConta().then((value) {
+                      for (var item in lstItens) {
+                        if (item.qtde > 0) {
+                          ItensProvider.addUpdateItem(item);
+                        }
+                      }
+                      await PedidosProvider.resetProdutos();
+                      DmModule.getCount('pedidos').then((resultado) =>
+                          ctrlApp.totalPedidos.value = resultado);
+                      await PdfInvoice(
+                              itens: lstItens,
+                              pedido: fpedido[0],
+                              titulo: 'PEDIDO')
+                          .generate(context);
+                      Navigator.of(context)
+                          .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                    }
                   }
                 },
               ),
@@ -183,7 +199,7 @@ class PedidoConta extends StatelessWidget {
                   children: [
                     ctrlApp.pedidoId.value.isNotEmpty
                         ? Text(
-                            'Pedido:' + ctrlApp.pedidoId.value,
+                            'Pedido:${ctrlApp.pedidoId.value}',
                             style: const TextStyle(
                                 fontSize: 14, fontWeight: FontWeight.w900),
                             overflow: TextOverflow.ellipsis,
@@ -199,8 +215,7 @@ class PedidoConta extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Text('Data do Pedido: ' +
-                            Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                        Text('Data do Pedido: ${Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')}'),
                         const Spacer(),
                         Text(
                           args.origem,
@@ -219,7 +234,54 @@ class PedidoConta extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: ProdutosBuilder(ctrlApp: ctrlApp, isConta: true),
+            child: ProdutosBuilder(ctrlApp: ctrlApp, origem: 'conta'),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 8,
+              ),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    // minWidth: size.width,
+                    // maxWidth: size.width,
+                    minHeight: 25.0,
+                    maxHeight: 135.0,
+                  ),
+                  child: Scrollbar(
+                    child: TextFormField(
+                      // controller: _observacaoController,
+
+                      expands: true,
+                      maxLength: 200,
+
+                      maxLines: null,
+                      minLines: null,
+                      initialValue: "",
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+                        labelText: "Observação",
+                      ),
+                      textInputAction: TextInputAction.next,
+                      onChanged: (value) {
+                        // _observacaoController.text = value;
+                        _observacao = value;
+                        // FocusScope.of(context).nextFocus();
+                      },
+                      inputFormatters: [
+                        UpperCaseTextFormatter(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(
+            height: 8,
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.start,
@@ -247,11 +309,11 @@ class PedidoConta extends StatelessWidget {
                     isExpanded: true,
                     hint: const Text('Forma de pagamento'),
                     items: ctrlApp.lstFormaPgto.map(buildMenuItem).toList(),
-                    value: _itemSelecionado.value == ""
+                    value: fitemSelecionado.value == ""
                         ? null
-                        : _itemSelecionado.value,
+                        : fitemSelecionado.value,
                     onChanged: (itemSelecionado) {
-                      _itemSelecionado.value = itemSelecionado!;
+                      fitemSelecionado.value = itemSelecionado!;
                     },
                     focusColor: Colors.black,
                     selectedItemBuilder: (BuildContext context) {
@@ -265,7 +327,7 @@ class PedidoConta extends StatelessWidget {
                       }).toList();
                     },
 
-                    // selectedItemBuilder: _itemSelecionado,
+                    // selectedItemBuilder: fitemSelecionado,
                   ),
                 ),
               ),

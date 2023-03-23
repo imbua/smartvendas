@@ -17,8 +17,8 @@ class ProdutosPreco extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController _edSearchProduto = TextEditingController();
-    final FocusNode _focusProduto = FocusNode();
+    final TextEditingController edSearchProduto = TextEditingController();
+    final FocusNode focusProduto = FocusNode();
     // final BuildContext startcontext = context;
 
     AppStore ctrlApp = Get.find<AppStore>();
@@ -29,7 +29,7 @@ class ProdutosPreco extends StatelessWidget {
             children: [
               const HeaderMain(
                 iconeMain: Icons.supervisor_account,
-                titulo: 'Produtos Registrados',
+                titulo: 'Consulta de produto',
                 altura: 70,
               ),
               Positioned(
@@ -66,11 +66,11 @@ class ProdutosPreco extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextField(
-                  controller: _edSearchProduto,
+                  controller: edSearchProduto,
                   autofocus: true,
                   keyboardType: TextInputType.number,
                   readOnly: false,
-                  focusNode: _focusProduto,
+                  focusNode: focusProduto,
                   style: const TextStyle(color: corText, fontSize: 25),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
@@ -84,7 +84,7 @@ class ProdutosPreco extends StatelessWidget {
 
                     suffix: GestureDetector(
                       onTap: () {
-                        _edSearchProduto.clear();
+                        edSearchProduto.clear();
                         ctrlApp.searchBar.value = '';
                         FocusScope.of(context).isFirstFocus;
                       },
@@ -95,7 +95,7 @@ class ProdutosPreco extends StatelessWidget {
                   onSubmitted: (value) async {
                     // if ((value.length > 13) || (value.length > 8)) {
                     ctrlApp.searchBar.value = value;
-                    FocusScope.of(context).requestFocus(_focusProduto);
+                    FocusScope.of(context).requestFocus(focusProduto);
 
                     // }
                   },
@@ -124,7 +124,7 @@ class ProdutosPreco extends StatelessWidget {
                     List<Produto> lstProduto = snapshot.data;
                     if (lstProduto.isEmpty) {
                       // || snapshot.data.lenght == 0
-                      if (_edSearchProduto.text != '') {
+                      if (edSearchProduto.text != '') {
                         FlutterBeep.beep();
                         return const Center(
                           child: Text('Produto  não encontrado'),
@@ -156,14 +156,13 @@ class ProdutosPreco extends StatelessWidget {
                                       Row(
                                         children: [
                                           Text(
-                                            'Código: ' + lstProduto[index].id,
+                                            'Código: ${lstProduto[index].id}',
                                             style: const TextStyle(
                                                 color: corText, fontSize: 11),
                                           ),
                                           const Spacer(),
                                           Text(
-                                            '  Barras: ' +
-                                                lstProduto[index].barras,
+                                            '  Barras: ${lstProduto[index].barras}',
                                             style: const TextStyle(
                                                 color: corText,
                                                 fontWeight: FontWeight.bold,
@@ -174,25 +173,25 @@ class ProdutosPreco extends StatelessWidget {
                                       Row(
                                         children: [
                                           Text(
-                                            'Valor:' +
-                                                lstProduto[index].valorfmt +
-                                                ' ' +
-                                                lstProduto[index].unidade,
-                                            style:
-                                                const TextStyle(fontSize: 15),
-                                          ),
-                                          const Spacer(),
-                                          const SizedBox(
-                                            width: 30,
-                                          ),
-                                          Text(
-                                            'Vr.Atac.:' +
-                                                lstProduto[index].atacadofmt,
-                                            style:
-                                                const TextStyle(fontSize: 15),
+                                            'Vr.Atac.:${lstProduto[index].atacadofmt} Qtd min.:${lstProduto[index]
+                                                    .qteminatacado}',
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ],
                                       ),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 30.0),
+                                        child: Center(
+                                          child: Text(
+                                            'R\$:${lstProduto[index].valorfmt} ${lstProduto[index].unidade}',
+                                            style:
+                                                const TextStyle(fontSize: 38),
+                                          ),
+                                        ),
+                                      )
                                     ]),
                               ));
                         },
@@ -207,12 +206,12 @@ class ProdutosPreco extends StatelessWidget {
               onPressed: () {
                 Funcoes.escanearCodigoBarras().then((barras) {
                   if (barras == '-1') {
-                    _edSearchProduto.clear;
+                    edSearchProduto.clear;
                     ctrlApp.searchBar.value = '';
-                    showMessage('Leitura cancelada', context);
+                    showMessage('Leitura cancelada');
                   } else {
                     FlutterBeep.beep(false);
-                    _edSearchProduto.text = barras;
+                    edSearchProduto.text = barras;
                     ctrlApp.searchBar.value = barras;
                   }
                 });

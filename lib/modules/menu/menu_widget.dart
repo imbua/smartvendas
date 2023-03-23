@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
-import 'package:smartvendas/modules/menu/menu_item.dart';
+import 'package:smartvendas/componentes/app_rodape.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
+import 'package:smartvendas/modules/menu/menu_item.dart' as menu;
 
 class MenuWidget extends StatelessWidget {
   const MenuWidget({Key? key}) : super(key: key);
@@ -54,11 +56,12 @@ class MenuWidget extends StatelessWidget {
             ),
           ),
           //titulo do menu principal
+
           Padding(
             padding: const EdgeInsets.only(left: 40),
             child: Row(
-              children: const <Widget>[
-                Text(
+              children: <Widget>[
+                const Text(
                   'Menu',
                   style: TextStyle(
                     color: Colors.white,
@@ -66,20 +69,32 @@ class MenuWidget extends StatelessWidget {
                     fontSize: 25,
                   ),
                 ),
-                SizedBox(width: 10),
-                Text(
+                const SizedBox(width: 10),
+                const Text(
                   'Principal',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 25,
                   ),
                 ),
-                SizedBox(height: 30),
+                const Spacer(),
+                IconButton(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRoutes.config);
+                  },
+                  icon: const Icon(Icons.settings),
+                  iconSize: 30,
+                  color: Colors.white,
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          //itens do menu
+          Container(
+            color: const Color(0xFF21BFBD),
+            height: 30,
+            width: 30,
+            child: const AppRodape(),
+          ),
           Container(
             height: MediaQuery.of(context).size.height,
             decoration: const BoxDecoration(
@@ -88,135 +103,183 @@ class MenuWidget extends StatelessWidget {
                 topLeft: Radius.circular(75),
               ),
             ),
-            child: ListView(
-              primary: false,
-              padding: const EdgeInsets.only(top: 40),
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: SizedBox(
-                    height: MediaQuery.of(context).size.height,
-                    child: ListView(
-                      children: <Widget>[
-                        Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Obx(() => (MenuItem(
-                                    img: 'images/cliente.png',
-                                    header: 'Clientes',
-                                    botton: ctrlApp.totalClientes.toString() +
-                                        ' clientes',
-                                    onPress: () {
-                                      Navigator.of(context)
-                                          .pushNamed(AppRoutes.clienteList);
-                                    },
-                                  ))),
-                              Obx(() {
-                                return MenuItem(
-                                    img: 'images/produto.png',
-                                    header: 'Produtos',
-                                    botton: ctrlApp.totalProdutos.toString() +
-                                        ' produtos',
-                                    onPress: () {
-                                      Navigator.of(context)
-                                          .pushNamed(AppRoutes.produtoList);
-                                    });
-                              }),
-                            ]),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Obx(() {
-                              return MenuItem(
-                                  img: 'images/pedidos.png',
-                                  header: 'Pedidos',
-                                  botton: ctrlApp.totalPedidos.toString() +
-                                      ' pedidos',
-                                  onPress: () {
-                                    ctrlApp.searchBar.value = '';
-
-                                    ctrlApp.searchBarWithCategoria.value = '';
-                                    Navigator.of(context)
-                                        .pushNamed(AppRoutes.pedidoList);
-                                  });
+            child: Padding(
+              padding: ctrlApp.isLocal
+                  ? const EdgeInsets.only(top: 40)
+                  : const EdgeInsets.only(top: 40),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height,
+                child: ListView(
+                  children: <Widget>[
+                    MenuItemRow(ctrlApp: ctrlApp),
+                    ctrlApp.isLocal
+                        ? const SizedBox()
+                        : MenuItemRemote(ctrlApp: ctrlApp),
+                    ctrlApp.isLocal
+                        ? MenuItemLocal(ctrlApp: ctrlApp)
+                        : const SizedBox(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        menu.MenuItem(
+                            img: 'images/coletor.png',
+                            header: 'Coletor',
+                            botton: '', //'Configurações gerais',
+                            onPress: () {
+                              ProdutosProvider.resetProdutos;
+                              Navigator.of(context)
+                                  .pushNamed(AppRoutes.produtosColetor);
                             }),
-                            MenuItem(
-                                img: 'images/vender.png',
-                                header: 'Novo pedido',
-                                botton: '', //'Registrar um novo pedido',
-                                onPress: () {
-                                  ctrlApp.searchBar.value = '';
-
-                                  ctrlApp.searchBarWithCategoria.value = '';
-
-                                  Navigator.of(context).pushNamed(
-                                      AppRoutes.clientesSelecionar,
-                                      arguments: 'pedido');
-                                }),
-                          ],
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            MenuItem(
-                              img: 'images/dav.png',
-                              header: 'DAV',
-                              botton: '',
-                              onPress: () {
-                                ctrlApp.searchBar.value = '';
-
-                                ctrlApp.searchBarWithCategoria.value = '';
-                                Navigator.of(context).pushNamed(
-                                    AppRoutes.clientesSelecionar,
-                                    arguments: 'dav');
-                              },
-                            ),
-                            MenuItem(
-                              img: 'images/preco.png',
-                              header: 'Consulta',
-                              botton: '',
-                              onPress: () {
-                                Navigator.of(context)
-                                    .pushNamed(AppRoutes.produtoPreco);
-                              },
-                            ),
-                          ],
-                        ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            MenuItem(
-                              img: 'images/sincro.png',
-                              header: 'Sincronizar',
-                              botton: 'pedidos e carga',
-                              onPress: () {
-                                Navigator.of(context)
-                                    .pushNamed(AppRoutes.sincro);
-                              },
-                            ),
-                            MenuItem(
-                                img: 'images/config.png',
-                                header: 'Configurar',
-                                botton: '', //'Configurações gerais',
-                                onPress: () {
-                                  Navigator.of(context)
-                                      .pushNamed(AppRoutes.config);
-                                }),
-                          ],
+                        menu.MenuItem(
+                          img: 'images/cotacao.png',
+                          header: 'Cotação',
+                          botton: 'Cotar preços',
+                          onPress: () {
+                            Navigator.of(context)
+                                .pushNamed(AppRoutes.pedidoCotacao);
+                          },
                         ),
                       ],
                     ),
-                  ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        menu.MenuItem(
+                          img: 'images/sincro.png',
+                          header: 'Sincronizar',
+                          botton: 'pedidos e carga',
+                          onPress: () {
+                            Navigator.of(context).pushNamed(AppRoutes.sincro);
+                          },
+                        ),
+                      ],
+                    ),
+
+                    //itens do menu
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class MenuItemLocal extends StatelessWidget {
+  const MenuItemLocal({
+    Key? key,
+    required this.ctrlApp,
+  }) : super(key: key);
+
+  final AppStore ctrlApp;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        menu.MenuItem(
+          img: 'images/dav.png',
+          header: 'DAV',
+          botton: '',
+          onPress: () {
+            ctrlApp.searchBar.value = '';
+
+            ctrlApp.searchBarWithCategoria.value = '';
+            Navigator.of(context)
+                .pushNamed(AppRoutes.clientesSelecionar, arguments: 'dav');
+          },
+        ),
+        menu.MenuItem(
+          img: 'images/preco.png',
+          header: 'Consulta',
+          botton: '',
+          onPress: () {
+            Navigator.of(context).pushNamed(AppRoutes.produtoPreco);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class MenuItemRemote extends StatelessWidget {
+  const MenuItemRemote({
+    Key? key,
+    required this.ctrlApp,
+  }) : super(key: key);
+
+  final AppStore ctrlApp;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Obx(() {
+          return menu.MenuItem(
+              img: 'images/pedidos.png',
+              header: 'Pedidos',
+              botton: '${ctrlApp.totalPedidos} pedidos',
+              onPress: () {
+                ctrlApp.searchBar.value = '';
+                ctrlApp.searchBarWithCategoria.value = '';
+                Navigator.of(context).pushNamed(AppRoutes.pedidoList);
+              });
+        }),
+        menu.MenuItem(
+            img: 'images/vender.png',
+            header: 'Novo pedido',
+            botton: '', //'Registrar um novo pedido',
+            onPress: () {
+              ctrlApp.searchBar.value = '';
+              ctrlApp.searchBarWithCategoria.value = '';
+
+              Navigator.of(context)
+                  .pushNamed(AppRoutes.clientesSelecionar, arguments: 'pedido');
+            }),
+      ],
+    );
+  }
+}
+
+class MenuItemRow extends StatelessWidget {
+  const MenuItemRow({
+    Key? key,
+    required this.ctrlApp,
+  }) : super(key: key);
+
+  final AppStore ctrlApp;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Obx(() => menu.MenuItem(
+                img: 'images/cliente.png',
+                header: 'Clientes',
+                botton: '${ctrlApp.totalClientes} clientes',
+                onPress: () {
+                  Navigator.of(context).pushNamed(AppRoutes.clienteList);
+                },
+              )),
+          Obx(() {
+            return menu.MenuItem(
+                img: 'images/produto.png',
+                header: 'Produtos',
+                botton: '${ctrlApp.totalProdutos} produtos',
+                onPress: () {
+                  Navigator.of(context).pushNamed(AppRoutes.produtoList);
+                });
+          }),
+        ]);
   }
 }

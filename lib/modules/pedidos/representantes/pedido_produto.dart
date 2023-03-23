@@ -24,6 +24,8 @@ class PedidoProduto extends StatelessWidget {
         ModalRoute.of(context)!.settings.arguments as Cliente;
 
     AppStore ctrlApp = Get.find<AppStore>();
+    ctrlApp.searchBar.value = '';
+    ctrlApp.searchBarWithCategoria.value = '';
     return WillPopScope(
       onWillPop: () {
         return Future.value(false); // if true allow back else block it
@@ -144,7 +146,7 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
               ),
               const Spacer(),
               Obx(() => Text(
-                    'Total:' + widget.ctrlApp.totalGeralProdutosFmt.value,
+                    'Total:${widget.ctrlApp.totalGeralProdutosFmt.value}',
                     style: const TextStyle(color: Colors.white),
                   )),
               const Spacer(),
@@ -199,12 +201,11 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Usuário: ' + widget.ctrlApp.usuario.value,
+                      'Usuário: ${widget.ctrlApp.usuario.value}',
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.bold),
                     ),
-                    Text('Data do Pedido: ' +
-                        Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')),
+                    Text('Data do Pedido: ${Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')}'),
                   ],
                 ),
               ),
@@ -214,7 +215,8 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
           Row(
             children: [
               Padding(
-                padding: const EdgeInsets.only(left: 8.0, top: 2, bottom: 2),
+                padding: const EdgeInsets.only(
+                    left: 8.0, right: 2, top: 2, bottom: 2),
                 child: TextButton(
                   onPressed: () {
                     ctrlApp.searchBarWithCategoria.value = '';
@@ -232,7 +234,15 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
 
               SizedBox(
                 width: MediaQuery.of(context).size.width - 85,
+                height: 30,
                 child: DropdownButton<Categoria>(
+                  isExpanded: true,
+                  // menuMaxHeight: 10,
+                  // selectedItemBuilder: (BuildContext context) {
+                  //   return ctrlApp.lstCategoria.map<Widget>((Categoria item) {
+                  //     return Text(item.descricao);
+                  //   }).toList();
+                  // },
                   items: ctrlApp.lstCategoria.map(buildMenuItem).toList(),
                   value: _itemSelecionado.id == "" ? null : _itemSelecionado,
                   onChanged: (itemSelecionado) {
@@ -273,6 +283,7 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
                         setState(() {
                           _edSearch.clear();
                           ctrlApp.searchBar.value = '';
+
                           FocusScope.of(context).unfocus();
                         });
                       },
@@ -291,7 +302,7 @@ class _PedidoProdutosControlState extends State<PedidoProdutosControl> {
                 )),
           ),
           Expanded(
-            child: ProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: false),
+            child: ProdutosBuilder(ctrlApp: widget.ctrlApp, origem: 'produto'),
           ),
         ]),
       ),

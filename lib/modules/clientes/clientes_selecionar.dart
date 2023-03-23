@@ -25,9 +25,9 @@ class ClienteSelecionar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String _choice = ModalRoute.of(context)!.settings.arguments as String;
+    final String choice = ModalRoute.of(context)!.settings.arguments as String;
 
-    final TextEditingController _edSearchNome = TextEditingController();
+    final TextEditingController edSearchNome = TextEditingController();
     AppStore ctrlApp = Get.find<AppStore>();
     return SafeArea(
       child: Scaffold(
@@ -59,7 +59,7 @@ class ClienteSelecionar extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextField(
-                  controller: _edSearchNome,
+                  controller: edSearchNome,
                   style: const TextStyle(color: corText, fontSize: 18),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
@@ -74,7 +74,7 @@ class ClienteSelecionar extends StatelessWidget {
                     ),
                     suffixIcon: GestureDetector(
                       onTap: () {
-                        _edSearchNome.clear();
+                        edSearchNome.clear();
                         FocusScope.of(context).unfocus();
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
@@ -115,7 +115,7 @@ class ClienteSelecionar extends StatelessWidget {
                               onTap: () async {
                                 PedidosProvider.resetProdutos();
                                 ctrlApp.totalGeralProdutosFmt.value = '';
-                                _doChoice(context, _choice, lstCliente[index]);
+                                _doChoice(context, choice, lstCliente[index]);
                               },
                               child: ListTile(
                                 title: Text(
@@ -132,9 +132,7 @@ class ClienteSelecionar extends StatelessWidget {
                                     Text(lstCliente[index].id,
                                         style: const TextStyle(fontSize: 12)),
                                     Text(
-                                        lstCliente[index].municipio +
-                                            ' - ' +
-                                            lstCliente[index].uf,
+                                        '${lstCliente[index].municipio} - ${lstCliente[index].uf}',
                                         style: const TextStyle(fontSize: 12)),
                                   ],
                                 ),
@@ -158,7 +156,7 @@ class ClienteSelecionar extends StatelessWidget {
               if (value is Cliente) {
                 // await PedidosProvider.resetProdutos();
                 ctrlApp.searchBar.value = value.id;
-                //   _doChoice(context, _choice, value);
+                //   _doChoice(context, choice, value);
               }
             },
             icon: const Icon(Icons.people_alt),

@@ -36,7 +36,7 @@ class _PedidoListagemState extends State<PedidoListagem> {
               ),
               const Spacer(),
               Obx(() => Text(
-                    'Total:' + ctrlApp.totalGeralProdutosFmt.value,
+                    'Total:${ctrlApp.totalGeralProdutosFmt.value}',
                     style: const TextStyle(color: Colors.white),
                   )),
               const SizedBox(
@@ -103,6 +103,36 @@ class _PedidoListagemState extends State<PedidoListagem> {
                               // The start action pane is the one at the left or the top side.
 
                               key: Key(lstPedido[index].id),
+
+                              startActionPane: ActionPane(
+                                // A motion is a widget used to control how the pane animates.
+                                motion: const ScrollMotion(),
+
+                                // A pane can dismiss the Slidable.
+                                dismissible: DismissiblePane(
+                                  onDismissed: (() async {
+                                    String id = lstPedido[index].id.toString();
+                                    await DmModule.deletaPedido(id);
+                                  }),
+                                ),
+
+                                // All actions are defined in the children parameter.
+                                children: [
+                                  // A SlidableAction can have an icon and/or a label.
+
+                                  SlidableAction(
+                                    onPressed: ((context) async {
+                                      String id =
+                                          lstPedido[index].id.toString();
+                                      await DmModule.deletaPedido(id);
+                                    }),
+                                    backgroundColor: const Color(0xFFFE4A49),
+                                    foregroundColor: Colors.white,
+                                    icon: Icons.delete,
+                                    label: 'Excluir',
+                                  ),
+                                ],
+                              ),
                               child: Container(
                                 color: Colors.white,
                                 child: ExpansionTileCard(
@@ -199,36 +229,6 @@ class _PedidoListagemState extends State<PedidoListagem> {
                                     ),
                                   ],
                                 ),
-                              ),
-
-                              startActionPane: ActionPane(
-                                // A motion is a widget used to control how the pane animates.
-                                motion: const ScrollMotion(),
-
-                                // A pane can dismiss the Slidable.
-                                dismissible: DismissiblePane(
-                                  onDismissed: (() async {
-                                    String _id = lstPedido[index].id.toString();
-                                    await DmModule.deletaPedido(_id);
-                                  }),
-                                ),
-
-                                // All actions are defined in the children parameter.
-                                children: [
-                                  // A SlidableAction can have an icon and/or a label.
-
-                                  SlidableAction(
-                                    onPressed: ((context) async {
-                                      String _id =
-                                          lstPedido[index].id.toString();
-                                      await DmModule.deletaPedido(_id);
-                                    }),
-                                    backgroundColor: const Color(0xFFFE4A49),
-                                    foregroundColor: Colors.white,
-                                    icon: Icons.delete,
-                                    label: 'Excluir',
-                                  ),
-                                ],
                               ),
                             ));
                       },

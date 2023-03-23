@@ -19,19 +19,19 @@ class ClienteList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController _edSearchNome = TextEditingController();
+    final TextEditingController edSearchNome = TextEditingController();
     AppStore ctrlApp = Get.find<AppStore>();
     return SafeArea(
       child: Scaffold(
         floatingActionButton: FloatingActionButton(
           onPressed: () => Navigator.of(context)
               .pushNamed(AppRoutes.clienteEdit, arguments: null),
+          tooltip: 'Adicionar Clientes',
+          backgroundColor: corText,
           child: const Icon(
             Icons.add,
             size: 30,
           ),
-          tooltip: 'Adicionar Clientes',
-          backgroundColor: corText,
         ),
         body: Column(children: [
           Stack(
@@ -75,7 +75,7 @@ class ClienteList extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: TextField(
-                  controller: _edSearchNome,
+                  controller: edSearchNome,
                   style: const TextStyle(color: corText, fontSize: 18),
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
@@ -90,7 +90,7 @@ class ClienteList extends StatelessWidget {
                     ),
                     suffixIcon: GestureDetector(
                       onTap: () {
-                        _edSearchNome.clear();
+                        edSearchNome.clear();
                         FocusScope.of(context).unfocus();
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
@@ -135,9 +135,7 @@ class ClienteList extends StatelessWidget {
                                     color: Colors.blueGrey[800], fontSize: 16),
                               ),
                               subtitle: Text(
-                                  lstCliente[index].municipio +
-                                      ' - ' +
-                                      lstCliente[index].uf,
+                                  '${lstCliente[index].municipio} - ${lstCliente[index].uf}',
                                   style: const TextStyle(fontSize: 12)),
                               children: [
                                 const Divider(
@@ -184,21 +182,18 @@ class ClienteList extends StatelessWidget {
                                   buttonMinWidth: 80,
                                   children: [
                                     BotaoBar(
-                                      lstCliente: lstCliente,
+                                      lstCliente: lstCliente[index],
                                       iconeBotao: FontAwesomeIcons.phone,
-                                      index: index,
                                       caption: 'Ligar',
                                     ),
                                     BotaoBar(
-                                        lstCliente: lstCliente,
+                                        lstCliente: lstCliente[index],
                                         iconeBotao:
                                             FontAwesomeIcons.locationPin,
-                                        index: index,
                                         caption: 'Mapa'),
                                     BotaoBar(
-                                        lstCliente: lstCliente,
+                                        lstCliente: lstCliente[index],
                                         iconeBotao: Icons.edit,
-                                        index: index,
                                         caption: 'Editar'),
                                   ],
                                 )
@@ -222,24 +217,22 @@ class BotaoBar extends StatelessWidget {
   const BotaoBar({
     Key? key,
     required this.lstCliente,
-    required this.index,
     required this.iconeBotao,
     required this.caption,
   }) : super(key: key);
 
-  final List<Cliente> lstCliente;
-  final int index;
+  final Cliente lstCliente;
   final String caption;
   final IconData iconeBotao;
 
   @override
   Widget build(BuildContext context) {
     final isCliente = (caption == 'Editar');
-    final isFone = (caption == 'Ligar') && (lstCliente[index].telefone != '');
+    final isFone = (caption == 'Ligar') && (lstCliente.telefone != '');
     final isGps = (caption == 'Mapa');
     final isMap = (caption == 'Mapa') &&
-        (lstCliente[index].latitude != '') &&
-        (lstCliente[index].longitude != '');
+        (lstCliente.latitude != '') &&
+        (lstCliente.longitude != '');
     final isEdit = (caption == 'Editar');
 
     return TextButton(
@@ -274,10 +267,10 @@ class BotaoBar extends StatelessWidget {
             Navigator.of(context)
                 .pushNamed(AppRoutes.clienteEdit, arguments: lstCliente);
           } else if (isFone) {
-            fazerLigacao(lstCliente[index].telefone);
+            fazerLigacao(lstCliente.telefone);
           } else if (isGps) {
             try {
-              localizarMapa(context, lstCliente[index]);
+              localizarMapa(context, lstCliente);
             } catch (e) {
               throw ('Erro on Gps ');
             }
@@ -301,8 +294,8 @@ class BotaoBar extends StatelessWidget {
       //     ' ' +
       //     lstCliente.uf);
       await _getLocation().then((location) {
-        final _lat = location.latitude.toString();
-        final _lng = location.longitude.toString();
+        final lat = location.latitude.toString();
+        final lng = location.longitude.toString();
         showCupertinoDialog(
           context: context,
           builder: (context) => CupertinoAlertDialog(
@@ -319,8 +312,8 @@ class BotaoBar extends StatelessWidget {
                 const SizedBox(height: 5),
                 Column(
                   children: [
-                    Text('Latitude:' + _lat),
-                    Text('Logitude:' + _lng),
+                    Text('Latitude:$lat'),
+                    Text('Logitude:$lng'),
                   ],
                 ),
               ],
@@ -329,12 +322,12 @@ class BotaoBar extends StatelessWidget {
               CupertinoDialogAction(
                 child: const Text('Salvar'),
                 onPressed: () {
-                  if (_lat != '') {
-                    var _cliente = lstCliente;
-                    _cliente.latitude = _lat;
-                    _cliente.longitude = _lng;
-                    _cliente.alterado = 1;
-                    ClientesProvider.addReplaceCliente(_cliente);
+                  if (lat != '') {
+                    var cliente = lstCliente;
+                    cliente.latitude = lat;
+                    cliente.longitude = lng;
+                    cliente.alterado = 1;
+                    ClientesProvider.addReplaceCliente(cliente);
                   }
 
                   Navigator.pop(context);
@@ -354,21 +347,21 @@ class BotaoBar extends StatelessWidget {
   Future<LocationData> _getLocation() async {
     Location location = Location();
 
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
+    bool serviceEnabled;
+    PermissionStatus permissionGranted;
 
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
+    serviceEnabled = await location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await location.requestService();
+      if (!serviceEnabled) {
         throw 'Serviço de localização não habilitado!';
       }
     }
 
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
+    permissionGranted = await location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) {
         throw 'Serviço de localização não permitido!';
       }
     }

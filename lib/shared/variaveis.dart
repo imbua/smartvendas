@@ -9,6 +9,10 @@ class PedidoArguments {
   PedidoArguments(this.lstCliente, this.origem);
 }
 
+class NavigationService {
+  static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+}
+
 final formatter =
     NumberFormat.currency(locale: "pt_Br", symbol: '', decimalDigits: 2);
 

@@ -23,6 +23,7 @@ class TextControllers {
   final TextEditingController _edCep = TextEditingController();
   final TextEditingController _edFone = TextEditingController();
   final TextEditingController _edCidade = TextEditingController();
+  final TextEditingController _edEmail = TextEditingController();
 
   static void clearVars() {
     textControllers._edCpfCnpj.clear();
@@ -34,6 +35,7 @@ class TextControllers {
     textControllers._edCep.clear();
     textControllers._edFone.clear();
     textControllers._edCidade.clear();
+    textControllers._edEmail.clear();
   }
 }
 
@@ -55,13 +57,13 @@ class _ClienteEditState extends State<ClienteEdit> {
   final FocusNode _edFocusCep = FocusNode();
   final FocusNode _edFocusFone = FocusNode();
   final FocusNode _edFocusCidade = FocusNode();
+  final FocusNode _edFocusEmail = FocusNode();
 
-  Future<bool> consultaCnpj() async {
+  Future<bool> consultaCnpj(String cnpj) async {
     try {
       bool okBool = false;
-      var cnpj = textControllers._edCpfCnpj.value.text
-          .replaceAll(RegExp(r'[^0-9 ]'), "");
-      var url = 'http://www.receitaws.com.br/v1/cnpj/' + cnpj;
+      cnpj = cnpj.replaceAll(RegExp(r'[^0-9 ]'), "");
+      var url = 'http://www.receitaws.com.br/v1/cnpj/$cnpj';
       final response = await http.get(Uri.parse(url));
       String data = response.body;
       if (response.statusCode == 200) {
@@ -69,6 +71,7 @@ class _ClienteEditState extends State<ClienteEdit> {
           var parsedJson = json.decode(data);
 
           // textControllers._edCpfCnpj.value = parsedJson['cnpj'];
+          textControllers._edCpfCnpj.text = cnpj;
           textControllers._edNome.text = parsedJson['nome'];
           textControllers._edFantasia.text = parsedJson['fantasia'];
           textControllers._edBairro.text = parsedJson['bairro'];
@@ -77,6 +80,7 @@ class _ClienteEditState extends State<ClienteEdit> {
           textControllers._edCep.text = parsedJson['cep'];
           textControllers._edFone.text = parsedJson['telefone'];
           textControllers._edCidade.text = parsedJson['municipio'];
+          // textControllers._edEmail.text = parsedJson['email'];
           okBool = true;
         }
       }
@@ -86,7 +90,10 @@ class _ClienteEditState extends State<ClienteEdit> {
     }
   }
 
-  void fetchVars(Cliente cliente) {
+  void fetchVars(Cliente cliente) async {
+    List<Cliente> lstcli = await ClientesProvider.loadClientes(cliente.id);
+    cliente = lstcli[0];
+
     textControllers._edCpfCnpj.text = cliente.id;
     textControllers._edNome.text = cliente.nome;
     textControllers._edFantasia.text = cliente.fantasia;
@@ -96,6 +103,7 @@ class _ClienteEditState extends State<ClienteEdit> {
     textControllers._edCep.text = cliente.cep;
     textControllers._edFone.text = cliente.telefone;
     textControllers._edCidade.text = cliente.municipio;
+    textControllers._edEmail.text = cliente.email;
   }
 
   void fetchVarsLocal(ResultCep cep) {
@@ -108,9 +116,9 @@ class _ClienteEditState extends State<ClienteEdit> {
   @override
   Widget build(BuildContext context) {
     if (ModalRoute.of(context)?.settings.arguments != null) {
-      final List<Cliente> lstCliente =
-          ModalRoute.of(context)!.settings.arguments as List<Cliente>;
-      fetchVars(lstCliente[0]);
+      final Cliente lstCliente =
+          ModalRoute.of(context)!.settings.arguments as Cliente;
+      fetchVars(lstCliente);
     } else {
       TextControllers.clearVars();
     }
@@ -164,37 +172,33 @@ class _ClienteEditState extends State<ClienteEdit> {
                       size: 30,
                     ),
                     onPressed: () async {
-                      String _cnpj = textControllers._edCpfCnpj.text
+                      String cnpj = textControllers._edCpfCnpj.text
                           .replaceAll(RegExp(r'[^0-9 ]'), "");
                       TextControllers.clearVars();
 
-                      if (_cnpj.length != 11 && _cnpj.length != 14) {
-                        showMessage(
-                            'Erro no preenchimento do CPF / CNPJ!', context);
+                      if (cnpj.length != 11 && cnpj.length != 14) {
+                        showMessage('Erro no preenchimento do CPF / CNPJ!');
                         return;
                       }
 
                       List<Cliente> lstCliente =
-                          await ClientesProvider.loadClientes(_cnpj);
+                          await ClientesProvider.loadClientes(cnpj);
                       if (lstCliente.isNotEmpty) {
                         fetchVars(lstCliente[0]);
                       } else {
-                        if (_cnpj.length == 11 || _cnpj.length == 14) {
-                          if (_cnpj.length == 11 &&
-                              !CPFValidator.isValid(_cnpj)) {
-                            showMessage(
-                                'Erro no preenchimento do CPF!', context);
+                        if (cnpj.length == 11 || cnpj.length == 14) {
+                          if (cnpj.length == 11 &&
+                              !CPFValidator.isValid(cnpj)) {
+                            showMessage('Erro no preenchimento do CPF!');
                           } else {
-                            if (_cnpj.length == 14 &&
-                                !CNPJValidator.isValid(_cnpj)) {
-                              showMessage(
-                                  'Erro no preenchimento do CNPJ!', context);
+                            if (cnpj.length == 14 &&
+                                !CNPJValidator.isValid(cnpj)) {
+                              showMessage('Erro no preenchimento do CNPJ!');
                             } else {
-                              if (_cnpj.length == 14) {
-                                await consultaCnpj().then((ok) {
+                              if (cnpj.length == 14) {
+                                await consultaCnpj(cnpj).then((ok) {
                                   if (!ok) {
-                                    showMessage(
-                                        'Cnpj não encontrado!', context);
+                                    showMessage('Cnpj não encontrado!');
                                   }
                                 });
                               }
@@ -275,21 +279,21 @@ class _ClienteEditState extends State<ClienteEdit> {
                       size: 30,
                     ),
                     onPressed: () async {
-                      String _cep = textControllers._edCep.text
+                      String cep = textControllers._edCep.text
                           .replaceAll(RegExp(r'[^0-9 ]'), "");
                       // clearVars();
-                      textControllers._edCep.text = _cep;
-                      if (_cep.length != 8) {
-                        showMessage('Erro no preenchimento do CEP!', context);
+                      textControllers._edCep.text = cep;
+                      if (cep.length != 8) {
+                        showMessage('Erro no preenchimento do CEP!');
                         return;
                       }
 
-                      final resultCep = await ViaCepService.fetchCep(cep: _cep);
+                      final resultCep = await ViaCepService.fetchCep(cep: cep);
 
                       if (resultCep.localidade != null) {
                         fetchVarsLocal(resultCep);
                       } else {
-                        showMessage('Cep não encontrado!', context);
+                        showMessage('Cep não encontrado!');
                         return;
                       }
                     },
@@ -320,6 +324,20 @@ class _ClienteEditState extends State<ClienteEdit> {
                       edFocusNode: _edFocusUf,
                       caption: 'UF',
                       textFlex: 1),
+                ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  TextEditCustom(
+                      edController: textControllers._edEmail,
+                      textInputType: TextInputType.emailAddress,
+                      edFocusNode: _edFocusEmail,
+                      caption: 'Email',
+                      textFlex: 3),
                 ]),
           ),
           Padding(
@@ -390,7 +408,7 @@ class BotaoBar extends StatelessWidget {
           } else if (caption == 'Fechar') {
             Navigator.of(context).pop();
           } else if (caption == 'Gravar') {
-            var _cliente = Cliente(
+            var cliente = Cliente(
               textControllers._edCpfCnpj.value.text,
               textControllers._edNome.value.text,
               textControllers._edFantasia.value.text,
@@ -403,11 +421,12 @@ class BotaoBar extends StatelessWidget {
               textControllers._edCidade.value.text,
               '0',
               '0',
+              textControllers._edEmail.value.text,
             );
-            _cliente.id = textControllers._edCpfCnpj.value.text;
+            cliente.id = textControllers._edCpfCnpj.value.text;
 
-            ClientesProvider.addReplaceCliente(_cliente);
-            Navigator.of(context).pop(_cliente);
+            ClientesProvider.addReplaceCliente(cliente);
+            Navigator.of(context).pop(cliente);
           }
         });
   }

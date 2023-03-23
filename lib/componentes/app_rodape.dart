@@ -6,7 +6,7 @@ class AppRodape extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsetsDirectional.only(top: 25),
+      padding: const EdgeInsetsDirectional.only(top: 05),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[

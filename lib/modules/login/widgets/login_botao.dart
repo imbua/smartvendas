@@ -5,12 +5,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
+import 'package:jiffy/jiffy.dart';
 import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
-import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
-import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/shared/show_message.dart';
 
 class sbBotaoAcessar extends StatelessWidget {
@@ -62,9 +62,13 @@ class sbBotaoAcessar extends StatelessWidget {
               ),
             ),
             onPressed: () async {
+              if (ctrlApp.ultimaCarga != Jiffy().format('dd[/]MM[/]yyyy')) {
+                showMessage('Carga não feita hoje');
+                clearToCarga();
+              }
+
               if (ctrlApp.userChaveApp.isEmpty) {
-                showMessage(
-                    'Sem a chave de acesso, use o botão de config.', context);
+                showMessage('Sem a chave de acesso, use o botão de config.');
               } else {
                 ctrlApp.updipServer(
                     ctrlApp.cwHost + ctrlApp.ipServerSufixo); //provisório
@@ -73,20 +77,7 @@ class sbBotaoAcessar extends StatelessWidget {
                     (ctrlApp.usuarioGravado.value == ctrlApp.usuario.value) &&
                     (ctrlApp.senhaGravado.value == ctrlApp.senha.value)) {
                   DmModule.totalCounts();
-
-                  CategoriasProvider.loadCategorias('').then((list) {
-                    ctrlApp.lstCategoria = [];
-                    for (var item in list) {
-                      ctrlApp.lstCategoria.add(item);
-                    }
-                  });
-
-                  FormaPgtoProvider.loadFormaPgto('').then((list) {
-                    ctrlApp.lstFormaPgto = [];
-                    for (var item in list) {
-                      ctrlApp.lstFormaPgto.add(item.descricao);
-                    }
-                  });
+                  DmModule.setTabelas(ctrlApp);
 
                   Navigator.of(context).pushNamed(AppRoutes.menu);
                 } else {
@@ -130,11 +121,10 @@ class sbBotaoAcessar extends StatelessWidget {
       // prProgress.update(value: 1, msg: 'Conectado!');
       // prProgress.close;
       // Navigator.of(loginContext).pop();
-      // showMessage('OK!', loginContext);
+      // showMessage('OK!');
 
       if (response.statusCode != 200) {
-        showMessage(
-            'Erro no link do login, falar com o desenvolvedor!', loginContext);
+        showMessage('Erro no link do login, falar com o desenvolvedor!');
         return [];
         // throw "Erro no link do login, response Error:" +
         // response.statusCode.toString();
@@ -153,15 +143,14 @@ class sbBotaoAcessar extends StatelessWidget {
           //     .map((_usuario) => Usuario.fromJson(_usuario))
           //     .toList();
         } else {
-          showMessage('Usuário, não encontrado!', loginContext);
+          showMessage('Usuário, não encontrado!');
 
           // Navigator.of(loginContext).pop();
           return [];
         }
       } else {
         showMessage(
-            "Erro no login, response Error:" + response.statusCode.toString(),
-            loginContext);
+            "Erro no login, response Error:${response.statusCode}");
 
         return [];
         // throw "Erro no login, response Error:" + response.statusCode.toString();
@@ -169,8 +158,7 @@ class sbBotaoAcessar extends StatelessWidget {
     } catch (exception) {
       // prProgress.close;
       // Navigator.of(loginContext).pop();
-      showMessage("Erro no login, exception Error:" + exception.toString(),
-          loginContext);
+      showMessage("Erro no login, exception Error:$exception");
 
       return [];
       // throw "Error on http." + exception.toString();

@@ -11,46 +11,64 @@ import 'package:smartvendas/shared/variaveis.dart';
 
 class FuncoesTela {
   static double _n = 0;
+  static String setUnd(Produto produto, String origem) {
+    if (origem == 'cotacao') {
+      return '${produto.volume}(${produto.qtevolume})';
+    } else {
+      return produto.unidade;
+    }
+  }
+
+  static String setPreco(Produto produto, String origem) {
+    if (origem == 'cotacao') {
+      double valor = produto.custo * produto.qtevolume;
+      return (formatter.format(valor));
+    } else {
+      return produto.valorfmt;
+    }
+  }
 
   static void doUpdateProduto(
-    List<Produto> produto,
-    int index,
-  ) async {
-    await DmModule.updTable('update produtos set qte=' +
-        FuncoesTela._n.toString() +
-        ' where id="' +
-        produto[index].id +
-        '"');
-    String _str = 'preco';
-    if (produto[index].qteminatacado > 0) {
-      if (_n >= produto[index].qteminatacado) {
-        _str = 'atacado';
+      List<Produto> produto, int index, String origem) async {
+    await DmModule.updTable('update produtos set qte=${FuncoesTela._n} where id="${produto[index].id}"');
+    String str = 'preco';
+    if (origem == 'cotacao') {
+      str = 'custo*qtevolume';
+    } else {
+      if (produto[index].qteminatacado > 0) {
+        if (_n >= produto[index].qteminatacado) {
+          str = 'atacado';
+        }
       }
     }
 
     ctrlApp.totalGeralProdutos.value =
-        await DmModule.getTotal('produtos', 'qte*$_str');
+        await DmModule.getTotal('produtos', 'qte*$str');
 
     ctrlApp.totalGeralProdutosFmt.value =
         formatter.format(ctrlApp.totalGeralProdutos.value);
     produto[index].qte = _n;
   }
 
-  static void minus(List<Produto> produto, int index) {
+  static void minus(List<Produto> produto, int index, String origem) {
     if (FuncoesTela._n > 0) {
       FuncoesTela._n = produto[index].qte - 1;
-      doUpdateProduto(produto, index);
+      if (FuncoesTela._n < 0) {
+        FuncoesTela._n = 0;
+      }
+      doUpdateProduto(produto, index, origem);
     }
   }
 
-  static void add(List<Produto> produto, int index) {
+  static void add(List<Produto> produto, int index, String origem) {
     FuncoesTela._n = produto[index].qte + 1;
-    doUpdateProduto(produto, index);
+    doUpdateProduto(produto, index, origem);
   }
 
-  static void updateField(List<Produto> produto, int index, String qte) {
+  static void updateField(
+      List<Produto> produto, int index, String qte, String origem) {
     FuncoesTela._n = Funcoes.strToFloat(qte);
-    doUpdateProduto(produto, index);
+    doUpdateProduto(produto, index, origem);
   }
 
   // static Future<List<Produto>> loadBuilder(bool isconta) {
@@ -58,19 +76,25 @@ class FuncoesTela {
   //       ? ProdutosProvider.loadProdutosConta()
   //       : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
   // }
-  static Future<List<Produto>> loadBuilder(bool isconta) {
-    return isconta
-        ? ProdutosProvider.loadProdutosConta()
-        : ProdutosProvider.loadProdutos(
+  static Future<List<Produto>> loadBuilder(String origem) {
+    if (origem == 'conta') {
+      return ProdutosProvider.loadProdutosConta();
+    } else {
+      if (origem == 'cotacao') {
+        return ProdutosProvider.loadProdutosCotacao(
             ctrlApp.searchBar.value, ctrlApp.searchBarWithCategoria.value);
+      } else {
+        return ProdutosProvider.loadProdutos(
+            ctrlApp.searchBar.value, ctrlApp.searchBarWithCategoria.value);
+      }
+    }
   }
 }
 
 class ProdutosBuilder extends StatefulWidget {
-  final bool isConta;
+  final String origem;
   final AppStore ctrlApp;
-  const ProdutosBuilder(
-      {Key? key, required this.ctrlApp, required this.isConta})
+  const ProdutosBuilder({Key? key, required this.ctrlApp, required this.origem})
       : super(key: key);
 
   @override
@@ -83,7 +107,7 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Produto>>(
-        future: FuncoesTela.loadBuilder(widget.isConta),
+        future: FuncoesTela.loadBuilder(widget.origem),
         initialData: const [],
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           List<Produto> lstProduto = snapshot.data;
@@ -121,16 +145,18 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                         Row(
                           children: [
                             Text(
-                                lstProduto[index].valorfmt +
-                                    '' +
-                                    lstProduto[index].unidade,
+                                '${FuncoesTela.setPreco(
+                                        lstProduto[index], widget.origem)}  ( ${lstProduto[index]
+                                        .estoque
+                                        .toStringAsFixed(0)} ${FuncoesTela.setUnd(
+                                        lstProduto[index], 'produto')})',
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: corText,
                                     fontWeight: FontWeight.bold)),
                             const Spacer(),
                             Text(
-                              '  Barras: ' + lstProduto[index].barras,
+                              '  Barras: ${lstProduto[index].barras}',
                               style: const TextStyle(
                                   color: corText,
                                   fontWeight: FontWeight.bold,
@@ -138,42 +164,46 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                             ),
                           ],
                         ),
-                        (lstProduto[index].atacado > 0 ||
-                                lstProduto[index].qte > 0)
-                            ? Row(
-                                children: [
-                                  lstProduto[index].atacado > 0
-                                      ? Text(
-                                          'Vr.Atac.:' +
-                                              lstProduto[index].atacadofmt,
-                                          style: const TextStyle(fontSize: 15),
-                                        )
-                                      : const SizedBox(
-                                          width: 1,
-                                        ),
-                                  const Spacer(),
-                                  (lstProduto[index].qte) > 0
-                                      ? Text(
-                                          lstProduto[index].qte.toString() +
-                                              ' X R\$' +
-                                              formatter.format(
-                                                  Funcoes.getValorProduto(
-                                                      lstProduto[index])) +
-                                              ' = ' +
-                                              formatter.format(
-                                                  lstProduto[index].qte *
-                                                      Funcoes.getValorProduto(
-                                                          lstProduto[index])),
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: corText,
-                                              fontWeight: FontWeight.bold))
-                                      : const Text(''),
-                                ],
+
+                        Row(
+                          children: [
+                            if (lstProduto[index].atacado > 0 &&
+                                widget.origem != 'cotacao')
+                              Text(
+                                'Atac.:${lstProduto[index].atacadofmt}(${lstProduto[index].qteminatacado} ${FuncoesTela.setUnd(
+                                        lstProduto[index], 'produto')})',
+                                style: const TextStyle(
+                                    fontSize: 12, fontWeight: FontWeight.bold),
                               )
-                            : const SizedBox(
-                                height: 1,
-                              ),
+                            else
+                              const SizedBox(width: 1),
+                            const Spacer(),
+                            (lstProduto[index].qte) > 0
+                                ? Text(
+                                    '${formatter.format(lstProduto[index].qte)}${FuncoesTela.setUnd(
+                                            lstProduto[index], widget.origem)} X R\$${formatter.format(
+                                            Funcoes.getValorProduto(
+                                                lstProduto[index],
+                                                widget.origem))} = ${formatter.format(lstProduto[index].qte *
+                                            Funcoes.getValorProduto(
+                                                lstProduto[index],
+                                                widget.origem))}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: corText,
+                                        fontWeight: FontWeight.bold))
+                                : const Text(''),
+                          ],
+                        ),
+
+                        // const Spacer(),
+                        // Text(
+                        //   '  Estoque: ' + lstProduto[index].estoque.toString(),
+                        //   style: const TextStyle(
+                        //       color: corText,
+                        //       fontWeight: FontWeight.bold,
+                        //       fontSize: 11),
+                        // ),
                       ],
                     ),
                     children: [
@@ -205,20 +235,21 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                                 width: 20,
                               ),
                               FloatingActionButton(
-                                heroTag: "minusconta" + index.toString(),
+                                heroTag: "minusconta$index",
                                 onPressed: () {
                                   setState(() {
                                     FuncoesTela._n = lstProduto[index].qte;
-                                    FuncoesTela.minus(lstProduto, index);
+                                    FuncoesTela.minus(
+                                        lstProduto, index, widget.origem);
                                     _controllers[index].text =
                                         FuncoesTela._n.toString();
                                   });
                                 },
+                                backgroundColor: Colors.blueGrey,
                                 child: const Icon(
                                   Icons.remove_circle_outline,
                                   size: 36,
                                 ),
-                                backgroundColor: Colors.blueGrey,
                               ),
                               const Spacer(flex: 3),
                               NumberEditCustom(
@@ -233,32 +264,36 @@ class _ProdutosBuilderState extends State<ProdutosBuilder> {
                                   setState(() {
                                     lstProduto[index].qte = Funcoes.strToFloat(
                                         _controllers[index].text);
-                                    FuncoesTela.updateField(lstProduto, index,
-                                        _controllers[index].text);
+                                    FuncoesTela.updateField(
+                                        lstProduto,
+                                        index,
+                                        _controllers[index].text,
+                                        widget.origem);
                                     _controllers[index].text =
                                         FuncoesTela._n.toString();
                                   });
                                 },
                                 textInputType:
                                     const TextInputType.numberWithOptions(
-                                        decimal: false),
+                                        decimal: true),
                               ),
                               const Spacer(),
                               FloatingActionButton(
-                                heroTag: "addconta" + index.toString(),
+                                heroTag: "addconta$index",
                                 onPressed: () {
                                   setState(() {
                                     FuncoesTela._n = lstProduto[index].qte;
-                                    FuncoesTela.add(lstProduto, index);
+                                    FuncoesTela.add(
+                                        lstProduto, index, widget.origem);
                                     _controllers[index].text =
                                         FuncoesTela._n.toString();
                                   });
                                 },
+                                backgroundColor: Colors.blueGrey,
                                 child: const Icon(
                                   Icons.add_circle_outline,
                                   size: 36,
                                 ),
-                                backgroundColor: Colors.blueGrey,
                               ),
                               const SizedBox(
                                 width: 20,

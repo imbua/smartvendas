@@ -71,7 +71,7 @@ class _SincroWidgetState extends State<SincroWidget> {
                   if (pbProgress.isShowing()) {
                     pbProgress.hide();
                   }
-                  showMessage('Erro:' + exception.toString(), context);
+                  showMessage('Erro:$exception');
 
                   Navigator.of(context).pop();
                 }
@@ -79,16 +79,27 @@ class _SincroWidgetState extends State<SincroWidget> {
           BotaoInfo(
               caption: 'Carga',
               iconeBotaoBackGround: FontAwesomeIcons.circleUser,
-              onPress: () async {
+              onPress: () {
                 try {
-                  await cargaDados(ctrlApp.cargaRemoto, context);
+                  if (ctrlApp.totalPedidos > 0) {
+                    showMessage('Há pedidos não enviados, processo cancelado!');
+                  } else {
+                    cargaDados(ctrlApp.cargaRemoto, context);
 
-                  await DmModule.totalCounts();
-                  // Navigator.of(context).pop();
+                    final pbProgress = Funcoes.progressBar(
+                        context, 1, 'Totalizando registros...');
+                    pbProgress.show();
 
-                  showMessage('Process concluido!', context);
+                    DmModule.totalCounts();
+                    pbProgress.hide();
+                    // Navigator.of(context).pop();
+
+                    showMessage(
+                      'Processo concluido!',
+                    );
+                  }
                 } catch (exception) {
-                  showMessage('Erro:' + exception.toString(), context);
+                  showMessage('Erro:$exception');
                   // Navigator.of(context).pop();
                 }
               }),

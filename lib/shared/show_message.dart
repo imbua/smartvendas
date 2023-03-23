@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:smartvendas/shared/variaveis.dart';
 
-void showMessage(String msg, BuildContext ctx) {
+void showMessage(String msg) {
   SnackBar snackBar = SnackBar(
     content: Text(msg),
     duration: const Duration(seconds: 2),
@@ -13,5 +14,6 @@ void showMessage(String msg, BuildContext ctx) {
 
   // Find the ScaffoldMessenger in the widget tree
   // and use it to show a SnackBar.
-  ScaffoldMessenger.of(ctx).showSnackBar(snackBar);
+  ScaffoldMessenger.of(NavigationService.navigatorKey.currentContext!)
+      .showSnackBar(snackBar);
 }

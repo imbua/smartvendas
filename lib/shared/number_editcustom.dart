@@ -50,7 +50,7 @@ class NumberEditCustom extends StatelessWidget {
             ),
             // labelText: caption,
           ),
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
 
           // maxLength: 5,
           style: TextStyle(fontSize: fonteSize),
@@ -67,7 +67,8 @@ class NumberEditCustom extends StatelessWidget {
                 baseOffset: 0, extentOffset: edController.value.text.length);
           },
           inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
+            // FilteringTextInputFormatter.digitsOnly,
+            FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,3}')),
             LengthLimitingTextInputFormatter(fieldMaxLength),
           ],
         ),

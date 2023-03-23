@@ -54,7 +54,7 @@ class PedidoAlterar extends StatelessWidget {
               ),
               const Spacer(),
               Obx(() => Text(
-                    'Total:' + ctrlApp.totalGeralProdutosFmt.value,
+                    'Total:${ctrlApp.totalGeralProdutosFmt.value}',
                     style: const TextStyle(color: Colors.white),
                   )),
               const Spacer(),
@@ -106,7 +106,7 @@ class PedidoAlterar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Pedido:' + ctrlApp.pedidoId.value,
+                      'Pedido:${ctrlApp.pedidoId.value}',
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w900),
                       overflow: TextOverflow.ellipsis,
@@ -119,7 +119,7 @@ class PedidoAlterar extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Text('Data do Pedido: ' + lstPedido[0].datapedido),
+                        Text('Data do Pedido: ${lstPedido[0].datapedido}'),
                         const Spacer(
                           flex: 1,
                         ),

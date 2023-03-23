@@ -3,8 +3,8 @@ import 'dart:convert';
 
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/fornecedores.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/pedido.dart';
 import 'package:smartvendas/store.dart';
 
@@ -12,7 +12,6 @@ class AppStore = _AppStoreBase with Store;
 
 abstract class _AppStoreBase extends GetxController {
   final Completer<SharedPreferences> _instancia = Completer();
-
   _init() async {
     _instancia.complete(await SharedPreferences.getInstance());
   }
@@ -23,7 +22,9 @@ abstract class _AppStoreBase extends GetxController {
   }
 
   RxBool isOk = false.obs;
-
+  bool isLocal = false;
+  bool useTabFornecedor = false;
+  String ultimaCarga = '';
   void sbOkChecked() {
     isOk.value = !isOk.value;
   }
@@ -50,7 +51,9 @@ abstract class _AppStoreBase extends GetxController {
   RxString loginVendedor = ''.obs;
   RxString loginVendedorNome = ''.obs;
   RxString userChaveApp = ''.obs;
+  RxInt totalRegistros = 0.obs;
   String cwHost = '';
+  String cwModo = '';
   String cwHostUser = '';
   String cwHostPassword = '';
   String cwHostDb = '';
@@ -70,6 +73,7 @@ abstract class _AppStoreBase extends GetxController {
     return strLabel.value;
   }
 
+  List<Fornecedor> lstFornecedor = [];
   List<Categoria> lstCategoria = [];
   List<String> lstFormaPgto = [];
 //variaveis do pedido
@@ -98,12 +102,6 @@ abstract class _AppStoreBase extends GetxController {
     return pedidoId.value.toString();
   }
 
-  void doTabCounts() async {
-    // print(await myDb.countCli().toString());
-    totalClientes.value = await DmModule.getCount('clientes');
-    // totalProdutos.value = await myDb.countPrd();
-  }
-
   void updUsuario(String value) {
     // if (usuarioGravado.value != value) {
     //   usuarioId.value = 0;
@@ -129,14 +127,16 @@ abstract class _AppStoreBase extends GetxController {
       sp.setString('psw', senha.value);
       sp.setString('userchaveapp', userChaveApp.value);
       sp.setString('host', cwHost);
+      sp.setString('modo', cwModo);
       sp.setString('hostDb', cwHostDb);
       sp.setString('hostDbFinan', cwHostDbFinan);
       sp.setBool('remember', isRememberSenha.value);
       sp.setBool('showSenha', showSenha.value);
-
+      sp.setString('ultimacarga', ultimaCarga);
+      sp.setBool('usetabfornecedor', useTabFornecedor);
       _lerIni();
     } catch (exception) {
-      throw ("GravaPreferences" + exception.toString());
+      throw ("GravaPreferences$exception");
     }
   }
 
@@ -151,11 +151,16 @@ abstract class _AppStoreBase extends GetxController {
     usuarioGravado.value = sp.getString('usuario') ?? '';
     senhaGravado.value = sp.getString('psw') ?? '';
     isRememberSenha.value = sp.getBool('remember') ?? false;
+    useTabFornecedor = sp.getBool('usetabfornecedor') ?? false;
     showSenha.value = sp.getBool('showSenha') ?? false;
+    ultimaCarga = sp.getString('ultimacarga') ?? '';
 
     cwHost = sp.getString('host') ?? '';
+    cwModo = sp.getString('modo') ?? '';
     cwHostDb = sp.getString('hostDb') ?? '';
     cwHostDbFinan = sp.getString('hostDbFinan') ?? '';
+
+    isLocal = cwModo == 'local';
   }
 
   String ipServerSufixo = '/nbsoftkernel/mobile';
@@ -166,28 +171,21 @@ abstract class _AppStoreBase extends GetxController {
     ipServer = value;
   }
 
-  String get urlBase => 'http://' + ipServer + '/';
+  String get urlBase => 'http://$ipServer/';
   String get loginRemoto =>
-      urlBase +
-      'login.mobile.php?token=' +
-      urlToken +
-      '=' + //original 10metr1csbycr1st1ano
-      '&user=' +
-      base64.encode(utf8.encode(usuario.value)) +
-      '&pwd=' +
-      base64.encode(utf8.encode(senha.value));
+      '${urlBase}login.mobile.php?token=$urlToken=&user=${base64.encode(utf8.encode(usuario.value))}&pwd=${base64.encode(utf8.encode(senha.value))}';
 
   String get cargaRemoto =>
-      urlBase +
-      'route.mobile.php?route=carga&token=' +
-      urlToken +
-      '&campo=&conteudo=';
+      '${urlBase}route.mobile.php?route=carga&token=$urlToken&campo=&conteudo=';
 
   String get urlSendClientes =>
-      urlBase + 'route.mobile.php?route=sendcliente&token=' + urlToken;
+      '${urlBase}route.mobile.php?route=sendcliente&token=$urlToken';
 
   String get urlSendPedidos =>
-      urlBase + 'route.mobile.php?route=sendpedido&token=' + urlToken;
+      '${urlBase}route.mobile.php?route=sendpedido&token=$urlToken';
+
+  String get urlSendColetor =>
+      '${urlBase}route.mobile.php?route=sendcoletor&token=$urlToken';
 
   String get vendedornome => 'Vendedor: $loginVendedorNome';
 }

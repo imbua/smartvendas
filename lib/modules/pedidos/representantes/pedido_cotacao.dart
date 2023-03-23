@@ -1,3 +1,4 @@
+// import 'package:expansion_tile_card/expansion_tile_card.dart';
 import 'package:expansion_tile_card/expansion_tile_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,9 +11,10 @@ import 'package:smartvendas/app_routes.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
-import 'package:smartvendas/modules/datamodule/connection/model/clientes.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/itens.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/produtos.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/produtos_provider.dart';
+import 'package:smartvendas/modules/pedidos/representantes/report/pdf_cotacao.dart';
 import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/shared/header_main.dart';
 import 'package:smartvendas/shared/number_editcustom.dart';
@@ -22,40 +24,52 @@ import 'package:smartvendas/shared/variaveis.dart';
 class FuncoesTela {
   static double _n = 0;
 
-  static void setTotal(String campo) async {
+  static double setPreco(Produto produto) {
+    if (ctrlApp.isLocal) {
+      return Funcoes.getValorProduto(produto, 'cotacao') * produto.qtevolume;
+    } else {
+      return Funcoes.getValorProduto(produto, 'cotacaoremoto') *
+          produto.qtevolume;
+    }
+  }
+
+  static void doUpdateProdutoInc(produto) async {
+    await DmModule.updTable(
+        'update produtos set qte=qte+${FuncoesTela._n} where id="${produto.id}"');
+    if (ctrlApp.isLocal) {
+      ctrlApp.totalGeralProdutos.value =
+          await DmModule.getTotal('produtos', 'qte*custo*qtevolume');
+    } else {
+      String valor = Funcoes.getFieldValor(produto);
+      ctrlApp.totalGeralProdutos.value =
+          await DmModule.getTotal('produtos', 'qte*$valor*qtevolume');
+    }
+    ctrlApp.totalGeralProdutosFmt.value =
+        formatter.format(ctrlApp.totalGeralProdutos.value);
+  }
+
+  static void doUpdateProduto(
+    Produto produto,
+  ) async {
+    await DmModule.updTable(
+        'update produtos set qte=${FuncoesTela._n} where id="${produto.id}"');
+
     ctrlApp.totalGeralProdutos.value =
-        await DmModule.getTotal('produtos', 'qte*$campo');
+        await DmModule.getTotal('produtos', 'qte*custo*qtevolume');
 
     ctrlApp.totalGeralProdutosFmt.value =
         formatter.format(ctrlApp.totalGeralProdutos.value);
-    // produto.qte = _n;
-  }
-
-  static void doUpdateProduto(produto) async {
-    var str = '';
-    await DmModule.updTable(
-        'update produtos set qte=qte+${FuncoesTela._n} where id="${produto.id}"');
-    str = getFieldValor(produto);
-    setTotal(str);
+    produto.qte = _n;
   }
 
   static void doExcluiItem(Produto produto) async {
-    var str = '';
     await DmModule.updTable(
         'update produtos set qte=0 where id="${produto.id}"');
-    str = getFieldValor(produto);
-    setTotal(str);
+    // setTotal('custo');
   }
 
-  static String getFieldValor(Produto produto) {
-    String str = 'preco';
-    if (produto.qteminatacado > 0) {
-      if (produto.qte >= produto.qteminatacado) {
-        str = 'atacado';
-      }
-    }
-    return str;
-    // produto.qte = _n;
+  static void doResetProduto() async {
+    await DmModule.updTable('update produtos set qte=0');
   }
 
   static minusEdit(Produto produto) {
@@ -76,7 +90,7 @@ class FuncoesTela {
     }
   }
 
-  void updateField(List<Produto> produto, int index, String qte) {
+  static void updateField(List<Produto> produto, int index, String qte) {
     FuncoesTela._n = Funcoes.strToFloat(qte);
     produto[index].qte = FuncoesTela._n;
 
@@ -93,61 +107,59 @@ class FuncoesTela {
 
   // static Future<List<Produto>> loadBuilder(bool isconta) {
   //   return isconta
-  //       ? ProdutosProvider.loadProdutosConta()
+  // ? ProdutosProvider.loadProdutosConta()
   //       : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value);
   // }
-  static Future<List<Produto>> loadBuilder(bool isconta) {
-    return isconta
-        ? ProdutosProvider.loadProdutosConta()
-        : ProdutosProvider.loadProdutos(ctrlApp.searchBar.value, '');
+  static Future<List<Produto>> loadBuilder() {
+    return ProdutosProvider.loadProdutosConta();
+    // return ProdutosProvider.loadProdutosCotacao(
+    // ctrlApp.searchBar.value, ctrlApp.searchBarWithCategoria.value);
   }
 }
 
-class DAV extends StatelessWidget {
-  const DAV({Key? key}) : super(key: key);
+class PedidoCotacao extends StatelessWidget {
+  const PedidoCotacao({Key? key}) : super(key: key);
   //  BackButtonInterceptor.add(myInterceptor);
 
   @override
   Widget build(BuildContext context) {
-    final Cliente lstCliente =
-        ModalRoute.of(context)!.settings.arguments as Cliente;
-
     AppStore ctrlApp = Get.find<AppStore>();
     ctrlApp.searchBar.value = '';
-    ctrlApp.searchBarWithCategoria.value = '';
-
     return WillPopScope(
       onWillPop: () {
         return Future.value(false); // if true allow back else block it
       },
-      child: DAVControl(
+      child: PedidoCotacaoControl(
         ctrlApp: ctrlApp,
-        lstCliente: lstCliente,
       ),
     );
   }
 }
 
-class DAVControl extends StatefulWidget {
-  const DAVControl({
+class PedidoCotacaoControl extends StatefulWidget {
+  const PedidoCotacaoControl({
     Key? key,
     required this.ctrlApp,
-    required this.lstCliente,
   }) : super(key: key);
 
   final AppStore ctrlApp;
-  final Cliente lstCliente;
 
   @override
-  State<DAVControl> createState() => _DAVControlState();
+  State<PedidoCotacaoControl> createState() => _PedidoCotacaoControlState();
 }
 
-class _DAVControlState extends State<DAVControl> {
+class _PedidoCotacaoControlState extends State<PedidoCotacaoControl> {
   List<Produto> lstProdutoList = [];
   Produto lstProduto = Produto.clear();
   final TextEditingController _edSearchNome = TextEditingController();
   final TextEditingController _edQte = TextEditingController();
   final FocusNode _focusProduto = FocusNode();
+
+  void setSearchFocus() {
+    _edSearchNome.clear();
+    ctrlApp.searchBar.value = '';
+    FocusScope.of(context).requestFocus(_focusProduto);
+  }
 
   void submitData(String value) async {
     double qte = 1;
@@ -156,25 +168,29 @@ class _DAVControlState extends State<DAVControl> {
     String str;
     if (produto.length > 7) {
       str = produto.substring(7, produto.length - 1);
-      // print(_str);
+      // print(str);
       if (produto.substring(0, 1) == '2') {
         //e barras
         produto = produto.substring(1, 7); //barras
         valor = Funcoes.strToFloat(str) / 100;
       }
 
-      lstProdutoList = await ProdutosProvider.loadProdutos(produto, '');
+      lstProdutoList = await ProdutosProvider.loadProdutosCotacao(produto, '');
       lstProduto = Produto.clear();
       if (lstProdutoList.isNotEmpty) {
         FlutterBeep.beep(true);
         //se houve barras
         if (valor > 0) {
-          qte = double.parse(
-              (valor / lstProdutoList[0].preco).toStringAsFixed(3));
+          qte = double.parse((valor / FuncoesTela.setPreco(lstProdutoList[0]))
+              .toStringAsFixed(3));
         }
 
-        lstProdutoList[0].qte = qte;
-        lstProduto = lstProdutoList[0];
+        // lstProdutoList[0].qte = qte;
+        // lstProduto = lstProdutoList[0];
+        FuncoesTela._n = qte;
+        FuncoesTela.doUpdateProdutoInc(lstProdutoList[0]);
+
+        setSearchFocus();
       } else {
         FlutterBeep.beep(false);
         showMessage('Registro não encontrado');
@@ -215,15 +231,14 @@ class _DAVControlState extends State<DAVControl> {
                 ),
                 icon: const Icon(Icons.cancel, color: Colors.black54),
                 onPressed: () {
-                  if (widget.ctrlApp.totalGeralProdutos.value > 0) {
-                    ProdutosProvider.resetProdutos;
-                    widget.ctrlApp.totalGeralProdutos.value = 0;
-                    widget.ctrlApp.totalGeralProdutosFmt.value = '';
-                  }
+                  FuncoesTela.doResetProduto();
 
+                  setState(() {});
                   // Modular.to.popUntil(ModalRoute.withName(AppRoutes.menu));
                   Navigator.of(context)
                       .popUntil((ModalRoute.withName(AppRoutes.menu)));
+                  widget.ctrlApp.totalGeralProdutos.value = 0;
+                  widget.ctrlApp.totalGeralProdutosFmt.value = '';
                 },
               ),
               const Spacer(),
@@ -231,10 +246,10 @@ class _DAVControlState extends State<DAVControl> {
                     'Total:${widget.ctrlApp.totalGeralProdutosFmt.value}',
                     style: const TextStyle(color: Colors.white),
                   )),
-              const Spacer(),
+              const Spacer(flex: 1),
               OutlinedButton.icon(
                 label: const Text(
-                  'Conta',
+                  'Salvar',
                   style: TextStyle(
                       color: Colors.white70,
                       fontFamily: "RobotoCondensed",
@@ -247,17 +262,38 @@ class _DAVControlState extends State<DAVControl> {
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   side: const BorderSide(width: 1, color: Colors.black87),
                 ),
-                icon: const Icon(Icons.shopping_cart, color: Colors.black54),
+                icon: const Icon(Icons.save, color: Colors.black54),
                 onPressed: () async {
-                  if (widget.ctrlApp.totalGeralProdutos.value > 0) {
-                    await Navigator.of(context).pushNamed(AppRoutes.pedidoConta,
-                        arguments: PedidoArguments(widget.lstCliente, 'dav'));
+                  if (ctrlApp.totalGeralProdutos.value > 0) {
+                    final List<Item> lstItens = [];
+
+                    final produtos = await ProdutosProvider.loadProdutosConta();
+                    int i;
+                    for (i = 0; i < produtos.length; i++) {
+                      lstItens.add(Item(
+                          i.toString(),
+                          ctrlApp.pedidoId.value,
+                          produtos[i].id,
+                          produtos[i].descricao,
+                          produtos[i].volume,
+                          produtos[i].qte,
+                          produtos[i].qteminatacado,
+                          produtos[i].custo * produtos[i].qtevolume,
+                          produtos[i].atacado,
+                          produtos[i].valorfmt,
+                          0));
+                    }
+                    FuncoesTela.doResetProduto();
+
+                    await PdfCotacao(itens: lstItens, titulo: 'Cotação')
+                        .generate(context);
+
+                    Navigator.of(context)
+                        .popUntil((ModalRoute.withName(AppRoutes.menu)));
+
+                    setState(() {});
                   }
-                  setState(() {});
                 },
-              ),
-              const SizedBox(
-                width: 10,
               ),
             ],
           ),
@@ -267,8 +303,8 @@ class _DAVControlState extends State<DAVControl> {
             children: [
               const HeaderInput(
                 iconeMain: Icons.local_shipping,
-                titulo: 'DAV',
-                altura: 70,
+                titulo: 'Cotação',
+                altura: 50,
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 8, left: 8, right: 40.0),
@@ -276,18 +312,12 @@ class _DAVControlState extends State<DAVControl> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.lstCliente.nome,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w900),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
                       'Usuário: ${widget.ctrlApp.usuario.value}',
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     Text(
-                        'Data do Pedido: ${Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')}'),
+                        'Data: ${Jiffy().format('dd[/]MM[/]yyyy [às] hh:mm')}'),
                   ],
                 ),
               ),
@@ -315,9 +345,7 @@ class _DAVControlState extends State<DAVControl> {
                     // floatingLabelAlignment: FloatingLabelAlignment.start,
                     suffix: GestureDetector(
                       onTap: () {
-                        _edSearchNome.clear();
-                        ctrlApp.searchBar.value = '';
-                        FocusScope.of(context).isFirstFocus;
+                        setSearchFocus();
                       },
                       child: const Icon(FontAwesomeIcons.eraser,
                           color: corText, size: 30),
@@ -342,12 +370,24 @@ class _DAVControlState extends State<DAVControl> {
                     baseColor: Colors.white24,
                     expandedColor: Colors.white24,
                     initiallyExpanded: true,
-                    // leading:
-                    title: Text(
-                      lstProduto.descricao,
-                      style: const TextStyle(color: corText, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    initialPadding: EdgeInsets.zero,
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lstProduto.barras,
+                          style: const TextStyle(
+                              color: corText,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11),
+                        ),
+                        Text(
+                          lstProduto.descricao,
+                          style: const TextStyle(color: corText, fontSize: 16),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                     subtitle: Column(
                       children: [
@@ -355,16 +395,9 @@ class _DAVControlState extends State<DAVControl> {
                           padding: const EdgeInsets.all(2.0),
                           child: Row(
                             children: [
-                              Text(
-                                lstProduto.barras,
-                                style: const TextStyle(
-                                    color: corText,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11),
-                              ),
                               const Spacer(),
                               Text(
-                                '${lstProduto.qte.toStringAsFixed(3)} X R\$${formatter.format(Funcoes.getValorProduto(lstProduto, 'DAV'))} = ${formatter.format(lstProduto.qte * Funcoes.getValorProduto(lstProduto, 'DAV'))}',
+                                '${lstProduto.qte.toStringAsFixed(3)}${lstProduto.volume} X R\$${formatter.format(FuncoesTela.setPreco(lstProduto))} = ${formatter.format(lstProduto.qte * FuncoesTela.setPreco(lstProduto))}',
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: corText,
@@ -413,7 +446,8 @@ class _DAVControlState extends State<DAVControl> {
                               caption: lstProduto.qte.toString(),
                               onComplete: (value) {
                                 setState(() {
-                                  lstProduto.qte = value;
+                                  lstProduto.qte =
+                                      Funcoes.strToFloat(_edQte.text);
 
                                   FuncoesTela.updateFieldEdit(
                                       lstProduto, _edQte.text);
@@ -428,10 +462,11 @@ class _DAVControlState extends State<DAVControl> {
                               heroTag: "addconta",
                               onPressed: () {
                                 FuncoesTela.addEdit(lstProduto);
+                                _edQte.text = lstProduto.qte.toString();
 
-                                setState(() {
-                                  _edQte.text = lstProduto.qte.toString();
-                                });
+                                // setState(() {
+                                //   _edQte.text = lstProduto.qte.toString();
+                                // });
                               },
                               backgroundColor: Colors.blueGrey,
                               child: const Icon(
@@ -471,7 +506,11 @@ class _DAVControlState extends State<DAVControl> {
                   ),
           ),
           Expanded(
-            child: DAVProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: true),
+            child: ColetorProdutosBuilder(
+                ctrlApp: widget.ctrlApp,
+                isConta: true,
+                editControl: _edSearchNome,
+                focusNode: _focusProduto),
           ),
           Row(
             children: [
@@ -503,7 +542,7 @@ class _DAVControlState extends State<DAVControl> {
               IconButton(
                 onPressed: () async {
                   await Navigator.of(context)
-                      .pushNamed(AppRoutes.produtoSearch, arguments: 'dav');
+                      .pushNamed(AppRoutes.produtoSearch, arguments: 'cotacao');
                   setState(() {});
                 },
                 icon: const Icon(
@@ -522,24 +561,31 @@ class _DAVControlState extends State<DAVControl> {
   }
 }
 
-class DAVProdutosBuilder extends StatefulWidget {
+class ColetorProdutosBuilder extends StatefulWidget {
   final bool isConta;
   final AppStore ctrlApp;
-  const DAVProdutosBuilder(
-      {Key? key, required this.ctrlApp, required this.isConta})
+  final TextEditingController editControl;
+  final FocusNode focusNode;
+
+  const ColetorProdutosBuilder(
+      {Key? key,
+      required this.ctrlApp,
+      required this.isConta,
+      required this.editControl,
+      required this.focusNode})
       : super(key: key);
 
   @override
-  State<DAVProdutosBuilder> createState() => _ProdutosBuilderState();
+  State<ColetorProdutosBuilder> createState() => ProdutosBuilderState();
 }
 
-class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
+class ProdutosBuilderState extends State<ColetorProdutosBuilder> {
   final List<TextEditingController> _controllers = [];
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Produto>>(
-        future: FuncoesTela.loadBuilder(widget.isConta),
+        future: FuncoesTela.loadBuilder(),
         initialData: const [],
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           List<Produto> lstProduto = snapshot.data;
@@ -567,7 +613,7 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
     return SizedBox(
       // leading:
       child: Slidable(
-        key: Key(lstProduto[index].id),
+        key: UniqueKey(),
         startActionPane: ActionPane(
           // A motion is a widget used to control how the pane animates.
           motion: const ScrollMotion(),
@@ -615,45 +661,136 @@ class _ProdutosBuilderState extends State<DAVProdutosBuilder> {
               ),
             ],
           ),
-          padding: const EdgeInsets.only(bottom: 3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                          bottom: 3, left: 8, top: 3, right: 8),
-                      child: Text(
-                        lstProduto[index].descricao,
-                        style: const TextStyle(color: corText, fontSize: 16),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.all(3),
-                child: Row(
+          // padding: const EdgeInsets.only(bottom: 3),
+          child: ExpansionTileCard(
+            // finalPadding: EdgeInsets.zero,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  lstProduto[index].barras,
+                  style: const TextStyle(
+                      color: corText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                ),
+                Text(
+                  lstProduto[index].descricao,
+                  style: const TextStyle(color: corText, fontSize: 16),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+            subtitle: Column(
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Barras: ${lstProduto[index].barras}',
-                      style: const TextStyle(
-                          color: corText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11),
-                    ),
                     const Spacer(),
-                    Text(
-                        '${lstProduto[index].qte.toStringAsFixed(3)}${lstProduto[index].unidade} X R\$${formatter.format(Funcoes.getValorProduto(lstProduto[index], 'DAV'))} = ${formatter.format(lstProduto[index].qte * Funcoes.getValorProduto(lstProduto[index], 'DAV'))}',
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: corText,
-                            fontWeight: FontWeight.bold))
+                    (lstProduto[index].qte) > 0
+                        ? Text(
+                            '${lstProduto[index].qte}${lstProduto[index].volume} X R\$${formatter.format(FuncoesTela.setPreco(lstProduto[index]))} = ${formatter.format(lstProduto[index].qte * FuncoesTela.setPreco(lstProduto[index]))}',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: corText,
+                                fontWeight: FontWeight.bold))
+                        : const Text(''),
                   ],
+                ),
+              ],
+            ),
+            children: [
+              const Divider(
+                thickness: 1,
+                height: 1,
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      FloatingActionButton(
+                        heroTag: "minusconta$index",
+                        onPressed: () {
+                          // setState(() {
+                          FuncoesTela._n = lstProduto[index].qte;
+                          FuncoesTela.minusEdit(lstProduto[index]);
+                          _controllers[index].text = FuncoesTela._n.toString();
+                          // });
+                        },
+                        backgroundColor: Colors.blueGrey,
+                        child: const Icon(
+                          Icons.remove_circle_outline,
+                          size: 36,
+                        ),
+                      ),
+                      const Spacer(flex: 3),
+                      NumberEditCustom(
+                        edController: _controllers[index],
+                        fonteSize: 30,
+                        fieldSize: 50,
+                        fieldMaxLength: 5,
+                        // edFocusNode: edQte,
+                        textFlex: 30,
+                        caption: lstProduto[index].qte.toString(),
+                        onComplete: () {
+                          setState(() {
+                            lstProduto[index].qte =
+                                Funcoes.strToFloat(_controllers[index].text);
+                            FuncoesTela.updateField(
+                                lstProduto, index, _controllers[index].text);
+                            _controllers[index].text =
+                                FuncoesTela._n.toString();
+                          });
+                        },
+                        textInputType: const TextInputType.numberWithOptions(
+                            decimal: false),
+                      ),
+                      const Spacer(),
+                      FloatingActionButton(
+                        heroTag: "addconta$index",
+                        onPressed: () {
+                          FuncoesTela.addEdit(lstProduto[index]);
+                          _controllers[index].text =
+                              lstProduto[index].qte.toString();
+                        },
+                        backgroundColor: Colors.blueGrey,
+                        child: const Icon(
+                          Icons.add_circle_outline,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 20,
+                      ),
+                      FloatingActionButton(
+                        heroTag: "Gravar",
+                        onPressed: () {
+                          lstProduto[index].qte =
+                              Funcoes.strToFloat(_controllers[index].text);
+
+                          FuncoesTela._n =
+                              Funcoes.strToFloat(_controllers[index].text);
+
+                          FuncoesTela.doUpdateProduto(lstProduto[index]);
+
+                          setState(() {
+                            //  lstProduto = Produto.clear();
+                            widget.editControl.clear();
+                            FocusScope.of(context)
+                                .requestFocus(widget.focusNode);
+                          });
+                        },
+                        backgroundColor: Colors.green[700],
+                        child: const Icon(
+                          Icons.check,
+                          size: 36,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

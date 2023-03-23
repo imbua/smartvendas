@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/modules/datamodule/connection/model/categoria.dart';
+import 'package:smartvendas/modules/datamodule/connection/model/fornecedores.dart';
 import 'package:smartvendas/shared/funcoes.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_share.dart';
 import 'package:smartvendas/shared/header_main.dart';
@@ -16,25 +17,27 @@ class ProdutoSearch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String source = ModalRoute.of(context)!.settings.arguments as String;
+
     AppStore ctrlApp = Get.find<AppStore>();
     return WillPopScope(
       onWillPop: () {
         return Future.value(false); // if true allow back else block it
       },
-      child: ProdutoSearchControl(
-        ctrlApp: ctrlApp,
-      ),
+      child: ProdutoSearchControl(ctrlApp: ctrlApp, origem: source),
     );
   }
 }
 
 class ProdutoSearchControl extends StatefulWidget {
+  final String origem;
+  final AppStore ctrlApp;
+
   const ProdutoSearchControl({
     Key? key,
+    required this.origem,
     required this.ctrlApp,
   }) : super(key: key);
-
-  final AppStore ctrlApp;
 
   @override
   State<ProdutoSearchControl> createState() => _ProdutoSearchControlState();
@@ -42,9 +45,17 @@ class ProdutoSearchControl extends StatefulWidget {
 
 class _ProdutoSearchControlState extends State<ProdutoSearchControl> {
   final TextEditingController _edSearch = TextEditingController();
+  bool isFornecedor = false;
+
   Categoria _itemSelecionado = Categoria('', '');
+  Fornecedor _itemFornecSelecionado = Fornecedor('', '');
 
   DropdownMenuItem<Categoria> buildMenuItem(Categoria item) => DropdownMenuItem(
+        value: item,
+        child: Text(item.descricao),
+      );
+  DropdownMenuItem<Fornecedor> buildFornecMenuItem(Fornecedor item) =>
+      DropdownMenuItem(
         value: item,
         child: Text(item.descricao),
       );
@@ -61,12 +72,26 @@ class _ProdutoSearchControlState extends State<ProdutoSearchControl> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.origem == 'cotacao') {
+      isFornecedor = ctrlApp.useTabFornecedor;
+    }
+
     return SafeArea(
       child: Scaffold(
         bottomNavigationBar: BottomAppBar(
           color: corRodape,
           child: Row(
             children: [
+              Obx(
+                () => Text(
+                  '${ctrlApp.totalRegistros} registros',
+                  style: const TextStyle(
+                      color: Colors.white70,
+                      fontFamily: "RobotoCondensed",
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+              ),
               const Spacer(),
               OutlinedButton.icon(
                 label: const Text(
@@ -110,7 +135,9 @@ class _ProdutoSearchControlState extends State<ProdutoSearchControl> {
                 child: TextButton(
                   onPressed: () {
                     ctrlApp.searchBarWithCategoria.value = '';
+                    _edSearch.text = '';
                     _itemSelecionado = Categoria('', '');
+                    _itemFornecSelecionado = Fornecedor('', '');
 
                     setState(() {});
                   },
@@ -124,17 +151,8 @@ class _ProdutoSearchControlState extends State<ProdutoSearchControl> {
 
               SizedBox(
                 width: MediaQuery.of(context).size.width - 85,
-                child: DropdownButton<Categoria>(
-                  items: ctrlApp.lstCategoria.map(buildMenuItem).toList(),
-                  value: _itemSelecionado.id == "" ? null : _itemSelecionado,
-                  onChanged: (itemSelecionado) {
-                    ctrlApp.searchBarWithCategoria.value = itemSelecionado!.id;
-                    _itemSelecionado = itemSelecionado;
-
-                    mudaEstado();
-                  },
-                  // selectedItemBuilder: _itemSelecionado,
-                ),
+                child:
+                    isFornecedor ? dropDownFornecedor() : dropDownCategoria(),
               ),
 
               // _listCategorias(context, mudaEstado),
@@ -183,10 +201,41 @@ class _ProdutoSearchControlState extends State<ProdutoSearchControl> {
                 )),
           ),
           Expanded(
-            child: ProdutosBuilder(ctrlApp: widget.ctrlApp, isConta: false),
+            child:
+                ProdutosBuilder(ctrlApp: widget.ctrlApp, origem: widget.origem),
           ),
         ]),
       ),
+    );
+  }
+
+  DropdownButton<Categoria> dropDownCategoria() {
+    return DropdownButton<Categoria>(
+      isExpanded: true,
+      items: ctrlApp.lstCategoria.map(buildMenuItem).toList(),
+      value: _itemSelecionado.id == "" ? null : _itemSelecionado,
+      onChanged: (itemSelecionado) {
+        ctrlApp.searchBarWithCategoria.value = itemSelecionado!.id;
+        _itemSelecionado = itemSelecionado;
+
+        mudaEstado();
+      },
+      // selectedItemBuilder: _itemSelecionado,
+    );
+  }
+
+  DropdownButton<Fornecedor> dropDownFornecedor() {
+    return DropdownButton<Fornecedor>(
+      isExpanded: true,
+      items: ctrlApp.lstFornecedor.map(buildFornecMenuItem).toList(),
+      value: _itemFornecSelecionado.id == "" ? null : _itemFornecSelecionado,
+      onChanged: (itemSelecionado) {
+        ctrlApp.searchBarWithCategoria.value = itemSelecionado!.id;
+        _itemFornecSelecionado = itemSelecionado;
+
+        mudaEstado();
+      },
+      // selectedItemBuilder: _itemSelecionado,
     );
   }
 }

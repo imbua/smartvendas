@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:smartvendas/componentes/app_rodape.dart';
+import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/shared/header_main.dart';
 import 'widgets/login_frame.dart';
 
@@ -9,7 +10,9 @@ class LoginPage extends StatefulWidget {
   const LoginPage({Key? key, this.title = "Login"}) : super(key: key);
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _LoginPageState createState() {
+    return _LoginPageState();
+  }
 }
 
 class _LoginPageState extends State<LoginPage>
@@ -45,15 +48,16 @@ class _LoginPageState extends State<LoginPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Stack(
-                  children: const [
-                    HeaderMain(
-                      iconeMain: Icons.shop_2_sharp,
-                      titulo: 'Smart Vendas',
-                      altura: 201,
-                    ),
-                  ],
-                ),
+                Stack(children: [
+                  HeaderMain(
+                    iconeMain: Icons.shop_2_sharp,
+                    titulo: 'Smart Vendas',
+                    altura: 201,
+                    logoMain: ctrlApp.isLocal
+                        ? 'images/logo.png'
+                        : 'images/logo.png', //até achar uma fucnao que traga a logo
+                  ),
+                ]),
                 Expanded(
                   child: SizedBox(
                     width: double.infinity,

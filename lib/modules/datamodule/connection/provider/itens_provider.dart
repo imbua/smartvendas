@@ -38,16 +38,8 @@ class ItensProvider {
   }
 
   static Future gravaItens(String idPedido, idProduto, int qtde, double valor) {
-    return DmModule.updTable('update itens set qtde=' +
-        qtde.toString() +
-        ',valor=' +
-        valor.toString() +
-        ' where idpedido="' +
-        idPedido +
-        '"' +
-        ' and idproduto="' +
-        idProduto +
-        '"');
+    return DmModule.updTable(
+        'update itens set qtde=$qtde,valor=$valor where idpedido="$idPedido" and idproduto="$idProduto"');
   }
 
   List<Item> get items {

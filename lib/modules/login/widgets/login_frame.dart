@@ -26,8 +26,8 @@ class loginFrame extends StatelessWidget {
     usuarioController.text = ctrlApp.usuario.value;
     senhaController.text = ctrlApp.senha.value;
 
-    return Column(
-      children: <Widget>[
+    return Stack(
+      children: [
         Column(
           children: <Widget>[
             Padding(
@@ -112,9 +112,21 @@ class loginFrame extends StatelessWidget {
                   width: 21,
                 ),
               ],
-            )
+            ),
           ],
         ),
+        // Positioned(
+        //   top: 200,
+        //   left: 75,
+        //   child: SizedBox(
+        //     height: 200,
+        //     width: 200,
+        //     child: Align(
+        //       child: Image.asset("images/logo.png"),
+        //       alignment: Alignment.topCenter,
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

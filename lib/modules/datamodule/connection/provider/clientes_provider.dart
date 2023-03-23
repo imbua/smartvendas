@@ -72,6 +72,7 @@ class ClientesProvider {
         'municipio': cliente.municipio,
         'latitude': cliente.latitude,
         'longitude': cliente.longitude,
+        'email': cliente.email,
         'alterado': 1,
       },
     );

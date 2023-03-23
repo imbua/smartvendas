@@ -13,6 +13,7 @@ class Cliente {
   String municipio = '';
   String latitude = '';
   String longitude = '';
+  String email = '';
   int alterado = 0;
 
   Cliente(
@@ -28,6 +29,7 @@ class Cliente {
     this.municipio,
     this.latitude,
     this.longitude,
+    this.email,
   );
   Map toJson() => {
         'id': id,
@@ -42,6 +44,7 @@ class Cliente {
         'municipio': municipio,
         'latitude': latitude,
         'longitude': longitude,
+        'email': email,
       };
   factory Cliente.fromMap(Map<String, dynamic> dados, bool toDb) {
     Cliente cliente = Cliente(
@@ -57,6 +60,7 @@ class Cliente {
       dados['municipio'],
       dados['latitude'],
       dados['longitude'],
+      dados['email'],
     );
     if (toDb) {
       ClientesProvider.addReplaceCliente(cliente);
@@ -79,6 +83,7 @@ class Cliente {
     dados['latitude'] = latitude;
     dados['longitude'] = longitude;
     dados['alterado'] = alterado;
+    dados['email'] = email;
     return dados;
   }
 
@@ -95,6 +100,7 @@ class Cliente {
     uf = dados["uf"] ?? '';
     latitude = dados["latitude"] ?? '';
     longitude = dados["longitude"] ?? '';
+    email = dados["email"] ?? '';
     alterado = 0;
   }
 
@@ -111,6 +117,7 @@ class Cliente {
     uf = dados["uf"] ?? '';
     latitude = dados["latitude"] ?? '';
     longitude = dados["longitude"] ?? '';
+    email = dados["email"] ?? '';
     alterado = 0;
   }
 }

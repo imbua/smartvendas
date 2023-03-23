@@ -34,19 +34,6 @@ class _ConfigWidgetState extends State<ConfigWidget> {
             titulo: 'Configurações',
             altura: 100,
           ),
-          // ItemList(
-          //   titulo: 'Opçoes teste',
-          //   subTitulo: 'subOpçoes teste',
-          //   cor: Colors.blue,
-          //   iconeItemList: Icons.settings,
-          //   item: Switch(
-          //       value: checked,
-          //       onChanged: (bool value) {
-          //         setState(() {
-          //           checked = value;
-          //         });
-          //       }),
-          // ),
           Container(
             height: 60,
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
@@ -75,7 +62,24 @@ class _ConfigWidgetState extends State<ConfigWidget> {
               ),
             ),
           ),
-
+          const SizedBox(
+            height: 10,
+          ),
+          ItemList(
+            titulo: 'Filtrar por fornecedor',
+            subTitulo: 'Mód. Coletor',
+            cor: Colors.blue,
+            iconeItemList: Icons.settings,
+            item: Switch(
+                value: ctrlApp.useTabFornecedor,
+                onChanged: (bool value) {
+                  setState(() {
+                    checked = value;
+                    ctrlApp.useTabFornecedor = value;
+                    ctrlApp.gravarIni();
+                  });
+                }),
+          ),
           Expanded(child: Container()),
           BotaoInfo(
             caption: 'OK',
@@ -85,18 +89,23 @@ class _ConfigWidgetState extends State<ConfigWidget> {
               getClientesWeb(context, ctrlApp.cwHostConnection).then((value) {
                 if (value == true) {
                   ctrlApp.usuarioId.value = 0;
-                  DmModule.delTable('clientes', '', '');
-                  DmModule.delTable('categorias', '', '');
-                  DmModule.delTable('produtos', '', '');
-                  DmModule.delTable('produtosimagem', '', '');
+
+                  DmModule.sqlQuery('drop table pedidos;');
+                  DmModule.sqlQuery('drop table itens;');
+                  DmModule.sqlQuery('drop table clientes;');
+                  DmModule.sqlQuery('drop table categorias;');
+                  DmModule.sqlQuery('drop table produtos;');
+                  DmModule.sqlQuery('drop table produtosimagem;');
+                  DmModule.database().then((value) {
+                    DmModule.criaBanco(value);
+                  });
+
                   ctrlApp.gravarIni();
+
                   Navigator.of(context).pop();
                 }
               });
 
-              // DmModule.sqlQuery('drop table pedidos;');
-              // DmModule.database().then((value) {
-              // DmModule.criaBanco(value);
               // }
               // );
             },
@@ -109,11 +118,11 @@ class _ConfigWidgetState extends State<ConfigWidget> {
 
 Future<bool> getClientesWeb(BuildContext context, String url) async {
   final msg = ScaffoldMessenger.of(context);
-  var _bool = true;
+  var bool = true;
   try {
     // int i;
     // final response = await http.get(Uri.parse(url));
-    final response = await http.post(Uri.parse('http://' + url),
+    final response = await http.post(Uri.parse('http://$url'),
         headers: {'Content-type': 'application/x-www-form-urlencoded'},
         body: Funcoes.doXmlGetChaveAmazon(ctrlApp.userChaveApp.value));
 
@@ -128,7 +137,8 @@ Future<bool> getClientesWeb(BuildContext context, String url) async {
           // }
           // listjsn[0].map((list) {
           ctrlApp.cwHost = listjsn[0]['clientesweb'][0]['host'];
-          // ctrlApp.cwHostUser = listjsn[0]['clientesweb'][0]['user'];
+          ctrlApp.cwModo = listjsn[0]['clientesweb'][0]['modo'];
+
           // ctrlApp.cwHostPassword = listjsn[0]['clientesweb'][0]['password'];
           ctrlApp.cwHostDb =
               listjsn[0]['clientesweb'][0]['db_name']; //['database_autocom']
@@ -140,7 +150,7 @@ Future<bool> getClientesWeb(BuildContext context, String url) async {
         //     .map((_usuario) => Usuario.fromJson(_usuario))
         //     .toList();
       } else {
-        _bool = false;
+        bool = false;
         msg.showSnackBar(
           const SnackBar(
             content: Text('Chave, não encontrado!'),
@@ -148,25 +158,24 @@ Future<bool> getClientesWeb(BuildContext context, String url) async {
         );
       }
     } else {
-      _bool = false;
+      bool = false;
       msg.showSnackBar(
         SnackBar(
-          content: Text("Erro no config, response Error:" +
-              response.statusCode.toString()),
+          content: Text("Erro no config, response Error:${response.statusCode}"),
         ),
       );
-      throw "Erro no config, response Error:" + response.statusCode.toString();
+      throw "Erro no config, response Error:${response.statusCode}";
     }
   } catch (exception) {
-    _bool = false;
+    bool = false;
     msg.showSnackBar(
       SnackBar(
-        content: Text("Error on http." + exception.toString()),
+        content: Text("Error on http.$exception"),
       ),
     );
-    throw "Error on http." + exception.toString();
+    throw "Error on http.$exception";
   }
-  return _bool;
+  return bool;
 }
 
 class ItemList extends StatelessWidget {

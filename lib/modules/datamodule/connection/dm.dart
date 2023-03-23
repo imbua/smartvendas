@@ -2,6 +2,7 @@ import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/datamodule/connection/dmremoto.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/categorias_provider.dart';
 import 'package:smartvendas/modules/datamodule/connection/provider/formapgto_provider.dart';
+import 'package:smartvendas/modules/datamodule/connection/provider/fornecedores_provider.dart';
 import 'package:sqflite/sqflite.dart' as sql;
 import 'package:path/path.dart' as path;
 
@@ -14,6 +15,13 @@ class DmModule {
       ctrlApp.lstCategoria = [];
       for (var item in list) {
         ctrlApp.lstCategoria.add(item);
+      }
+    });
+
+    FornecedoresProvider.loadFornecedores('').then((list) {
+      ctrlApp.lstFornecedor = [];
+      for (var item in list) {
+        ctrlApp.lstFornecedor.add(item);
       }
     });
 
@@ -40,13 +48,15 @@ class DmModule {
 
   static Future<void> _criarBanco(sql.Database db, int novaVersao) async {
     List<String> queryes = [
-      "CREATE TABLE IF NOT EXISTS produtos (id TEXT PRIMARY KEY, descricao TEXT, idcategoria TEXT, barras TEXT, unidade TEXT, preco  FLOAT, atacado  FLOAT,  qte FLOAT,  qteminatacado INTEGER, estoque FLOAT,imagem TEXT);",
+      "CREATE TABLE IF NOT EXISTS produtos (id TEXT PRIMARY KEY, descricao TEXT, idcategoria TEXT,idfornecedor TEXT, barras TEXT, unidade TEXT, custo FLOAT, preco  FLOAT, atacado  FLOAT,  qte FLOAT,  qteminatacado INTEGER, estoque FLOAT,volume TEXT, qtevolume FLOAT, imagem TEXT);",
       "CREATE TABLE IF NOT EXISTS produtosimagem (id TEXT PRIMARY KEY, imagem TEXT);",
-      "CREATE TABLE IF NOT EXISTS clientes (id TEXT PRIMARY KEY,nome  TEXT,fantasia  TEXT,endereco  TEXT,numero  TEXT,bairro  TEXT,cep  TEXT,telefone  TEXT,uf  TEXT,municipio  TEXT,latitude  TEXT,longitude  TEXT, alterado  INTEGER);",
+      "CREATE TABLE IF NOT EXISTS clientes (id TEXT PRIMARY KEY,nome  TEXT,fantasia  TEXT,endereco  TEXT,numero  TEXT,bairro  TEXT,cep  TEXT,telefone  TEXT,uf  TEXT,municipio  TEXT,latitude  TEXT,longitude  TEXT, alterado  INTEGER,email TEXT);",
       "CREATE TABLE IF NOT EXISTS categorias (id TEXT PRIMARY KEY, descricao TEXT);",
+      "CREATE TABLE IF NOT EXISTS fornecedores (id TEXT PRIMARY KEY, descricao TEXT);",
       "CREATE TABLE IF NOT EXISTS formapgto (id TEXT PRIMARY KEY, descricao TEXT);",
-      "CREATE TABLE IF NOT EXISTS pedidos (id TEXT PRIMARY KEY, idvendedor  TEXT, nomevendedor  TEXT,idcliente  TEXT,nomecliente  TEXT,datapedido  TEXT,total  FLOAT,totalfmt  TEXT,enviado  INTEGER, formapgto TEXT);",
-      "CREATE TABLE IF NOT EXISTS itens (id TEXT PRIMARY KEY ,idpedido   TEXT, idproduto   TEXT, descricao   TEXT, unidade   TEXT,qtde   INTEGER,qteminatacado INTEGER, valor   FLOAT,atacado   FLOAT, totalfmt   TEXT, enviado   INTEGER);",
+      "CREATE TABLE IF NOT EXISTS pedidos (id TEXT PRIMARY KEY, idvendedor  TEXT, nomevendedor  TEXT,idcliente  TEXT,nomecliente  TEXT,datapedido  TEXT,total  FLOAT,totalfmt  TEXT,enviado  INTEGER, formapgto TEXT, observacao TEXT);",
+      "CREATE TABLE IF NOT EXISTS itens (id TEXT PRIMARY KEY ,idpedido   TEXT, idproduto   TEXT, descricao   TEXT, unidade   TEXT,qtde   float,qteminatacado INTEGER, valor   FLOAT,atacado   FLOAT, totalfmt   TEXT, enviado   INTEGER);",
+      "CREATE TABLE IF NOT EXISTS cotacao (id TEXT PRIMARY KEY ,idcliente   TEXT, idproduto   TEXT, qtde   double);",
       "CREATE INDEX IF NOT EXISTS ibarras  ON produtos (barras);",
       "CREATE INDEX IF NOT EXISTS idescr  ON produtos (descricao);",
     ];
@@ -92,7 +102,7 @@ class DmModule {
       return db.transaction((txn) => txn.delete(table));
     } else {
       return db.transaction((txn) =>
-          txn.delete(table, where: campo + " =  ?", whereArgs: [conteudo]));
+          txn.delete(table, where: "$campo =  ?", whereArgs: [conteudo]));
     }
   }
 
@@ -132,7 +142,7 @@ class DmModule {
     } else {
       return await db.transaction((txn) async {
         return txn.query(table,
-            where: campo + " " + operador + "  ?", whereArgs: [conteudo]);
+            where: "$campo $operador  ?", whereArgs: [conteudo]);
       });
     }
   }
@@ -140,14 +150,14 @@ class DmModule {
   static Future<List<Map<String, dynamic>>> getNearestData(
       String table, String campo, String conteudo, bool comecoexato) async {
     final db = await DmModule.database();
-    String _start = '';
+    String start = '';
     if (comecoexato == false) {
-      _start = '%';
+      start = '%';
     }
     return await db.transaction((txn) => txn.query(table,
-        where: campo + " like  ?",
-        whereArgs: [_start + conteudo + '%'],
-        limit: 30));
+        where: "$campo like  ?",
+        whereArgs: ['$start$conteudo%'],
+        limit: 500));
   }
 
   static Future<List<Map<String, dynamic>>> sqlQuery(String sqlText) async {

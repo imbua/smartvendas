@@ -1,20 +1,21 @@
-import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:smartvendas/app_routes.dart';
-import 'package:smartvendas/app_store.dart';
 import 'package:smartvendas/modules/clientes/cliente_edit.dart';
 import 'package:smartvendas/modules/clientes/clientes_selecionar.dart';
 import 'package:smartvendas/modules/datamodule/connection/dm.dart';
 import 'package:smartvendas/modules/pedidos/davs/dav.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_alterar.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_conta.dart';
+import 'package:smartvendas/modules/pedidos/representantes/pedido_cotacao.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_list.dart';
 import 'package:smartvendas/modules/pedidos/representantes/pedido_produto.dart';
+import 'package:smartvendas/modules/produtos/produtos_coletor.dart';
 import 'package:smartvendas/modules/produtos/produtos_list.dart';
 import 'package:smartvendas/modules/config/sincro_widget.dart';
 import 'package:smartvendas/modules/produtos/produtos_preco.dart';
 import 'package:smartvendas/modules/produtos/produtos_search.dart';
+import 'package:smartvendas/shared/variaveis.dart';
 import 'modules/clientes/clientes_list.dart';
 import 'modules/config/config_widget.dart';
 import 'modules/login/login_page.dart';
@@ -51,12 +52,14 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    AppStore ctrlApp = Get.put(AppStore());
+    // AppStore ctrlApp = Get.put(AppStore());
     //  myDb.doCmdQuery('DROP DATABASE IF EXISTS db.sqlite');
     // AppStore ctrlApp = Get.put(AppStore());
 
     return MaterialApp(
       title: 'SmartVendas',
+      navigatorKey: NavigationService.navigatorKey,
+      // scaffoldMessengerKey: scaffoldMessengerKey,
       theme: ThemeData(
         // fontFamily: 'Lato',
         primarySwatch: Colors.blue,
@@ -86,6 +89,10 @@ class MyApp extends StatelessWidget {
         AppRoutes.pedidoAlterar: (ctx) => const PedidoAlterar(),
         AppRoutes.pedidoList: (ctx) => const PedidoListagem(),
         AppRoutes.dav: (ctx) => const DAV(),
+        AppRoutes.produtosColetor: (ctx) => const ProdutosColetor(),
+        AppRoutes.pedidoCotacao: (ctx) => const PedidoCotacao(),
+
+        // AppRoutes.pagePreview: (ctx) => const PagePreview(),
 
         //   AppRoutes.PRODUCT_DETAIL: (ctx) => ProductDetailPage(),
         //   AppRoutes.CART: (ctx) => CartPage(),
@@ -132,12 +139,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by

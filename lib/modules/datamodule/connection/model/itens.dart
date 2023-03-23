@@ -1,4 +1,5 @@
 import 'package:smartvendas/modules/datamodule/connection/provider/itens_provider.dart';
+import 'package:smartvendas/shared/funcoes.dart';
 
 class Item {
   String id = '';
@@ -45,7 +46,7 @@ class Item {
       dados['idproduto'],
       dados['descricao'] ?? '',
       dados['unidade'] ?? '',
-      dados['qtde'],
+      Funcoes.strToFloat(dados['qtde'].toString()),
       dados['qteminatacado'],
       dados['valor'],
       dados['atacado'],
